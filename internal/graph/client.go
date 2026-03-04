@@ -1,0 +1,149 @@
+package graph
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
+)
+
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	token      string
+}
+
+func New(version, token string) *Client {
+	return &Client{
+		baseURL:    "https://graph.facebook.com/" + version,
+		httpClient: http.DefaultClient,
+		token:      token,
+	}
+}
+
+func (c *Client) WithToken(token string) *Client {
+	return &Client{
+		baseURL:    c.baseURL,
+		httpClient: c.httpClient,
+		token:      token,
+	}
+}
+
+func (c *Client) Get(ctx context.Context, path string, params url.Values, out any) error {
+	u, err := url.Parse(c.baseURL + "/" + path)
+	if err != nil {
+		return err
+	}
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("access_token", c.token)
+	u.RawQuery = params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	return c.do(req, out)
+}
+
+func (c *Client) Post(ctx context.Context, path string, body url.Values, out any) error {
+	u := c.baseURL + "/" + path + "?access_token=" + url.QueryEscape(c.token)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(body.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return c.do(req, out)
+}
+
+func (c *Client) PostMultipart(ctx context.Context, path string, fields map[string]string, filePath string, out any) error {
+	u := c.baseURL + "/" + path + "?access_token=" + url.QueryEscape(c.token)
+
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
+
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
+
+		for k, v := range fields {
+			if err := writer.WriteField(k, v); err != nil {
+				pw.CloseWithError(err)
+				return
+			}
+		}
+
+		f, err := os.Open(filePath)
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		defer f.Close()
+
+		part, err := writer.CreateFormFile("source", filepath.Base(filePath))
+		if err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+		if _, err := io.Copy(part, f); err != nil {
+			pw.CloseWithError(err)
+			return
+		}
+	}()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, pr)
+	if err != nil {
+		pr.CloseWithError(err)
+		return err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	return c.do(req, out)
+}
+
+func (c *Client) Delete(ctx context.Context, path string, out any) error {
+	u := c.baseURL + "/" + path + "?access_token=" + url.QueryEscape(c.token)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	if err != nil {
+		return err
+	}
+	return c.do(req, out)
+}
+
+func (c *Client) do(req *http.Request, out any) error {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		var envelope struct {
+			Error *GraphError `json:"error"`
+		}
+		if json.Unmarshal(body, &envelope) == nil && envelope.Error != nil {
+			return &APIError{StatusCode: resp.StatusCode, Graph: envelope.Error}
+		}
+		return &APIError{StatusCode: resp.StatusCode}
+	}
+
+	if out != nil {
+		if err := json.Unmarshal(body, out); err != nil {
+			return fmt.Errorf("decode response: %w", err)
+		}
+	}
+	return nil
+}

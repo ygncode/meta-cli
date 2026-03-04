@@ -1,0 +1,6 @@
+/meta-cli
+/meta
+*.db
+tokens.json
+.env
+.DS_Store
