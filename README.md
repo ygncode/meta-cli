@@ -16,6 +16,39 @@ cd meta-cli
 make build
 ```
 
+## Prerequisites
+
+You need a Facebook App to get your **App ID** and **App Secret**. In development mode (default), no app review is needed — you can manage your own pages immediately.
+
+### 1. Create a Facebook App
+
+1. Go to [Meta for Developers](https://developers.facebook.com/) and log in
+2. Click **My Apps** > **Create App**
+3. Select **Other** as the use case, then choose **Business** as the app type
+4. Give it a name (e.g. "My Page CLI") and click **Create App**
+
+### 2. Get App ID and App Secret
+
+1. In your app dashboard, go to **App Settings** > **Basic**
+2. Copy the **App ID**
+3. Click **Show** next to **App Secret** and copy it
+
+### 3. Add Facebook Login
+
+1. In the app dashboard, click **Add Product**
+2. Find **Facebook Login** and click **Set Up**
+3. Go to **Facebook Login** > **Settings**
+4. Under **Valid OAuth Redirect URIs**, add `https://localhost/`
+5. Click **Save Changes**
+
+### 4. Connect a Facebook Page
+
+1. Go to **App Settings** > **Advanced**
+2. Under **App Page**, connect the Facebook Page you want to manage
+3. Alternatively, the page will be automatically discovered during `auth login` if you are an admin of the page
+
+> **Note:** In development mode, only your own Facebook account can use the app. This is fine for personal use — no app review required.
+
 ## Quick Start
 
 ```bash
