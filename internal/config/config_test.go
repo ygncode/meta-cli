@@ -50,7 +50,7 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 
 	// Verify file exists
-	path := filepath.Join(tmp, ".config", "meta-cli", "config.json")
+	path := filepath.Join(tmp, ".meta-cli", "config.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
@@ -81,7 +81,7 @@ func TestLoadInvalidJSON(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("HOME", tmp)
 
-	dir := filepath.Join(tmp, ".config", "meta-cli")
+	dir := filepath.Join(tmp, ".meta-cli")
 	os.MkdirAll(dir, 0o700)
 	os.WriteFile(filepath.Join(dir, "config.json"), []byte("{invalid json}"), 0o600)
 

@@ -13,7 +13,7 @@ func Dir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "meta-cli"), nil
+	return filepath.Join(home, ".meta-cli"), nil
 }
 
 func Path() (string, error) {

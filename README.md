@@ -68,8 +68,8 @@ meta-cli auth login --app-id YOUR_APP_ID --app-secret YOUR_APP_SECRET
 # List your pages
 meta-cli pages list
 
-# Set default page in config
-# Edit ~/.config/meta-cli/config.json and set "default_page": "YOUR_PAGE_ID"
+# Set default page
+meta-cli pages set-default YOUR_PAGE_ID
 
 # Create a text post
 meta-cli post create --message "Hello from meta-cli!"
@@ -98,6 +98,7 @@ meta-cli rag search "how to reset password"
 | `auth status` | Show current auth status |
 | `auth refresh` | Refresh page tokens |
 | `pages list` | List pages you manage |
+| `pages set-default` | Set a default page for commands |
 | `post list` | List recent posts |
 | `post create` | Create a text, photo, or link post |
 | `post delete` | Delete a post |
@@ -129,7 +130,7 @@ meta-cli rag search "how to reset password"
 
 ## Config
 
-Config file: `~/.config/meta-cli/config.json`
+Config file: `~/.meta-cli/config.json`
 
 ```json
 {

@@ -35,7 +35,7 @@ func DefaultDBPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(home, ".local", "share", "meta-cli")
+	dir := filepath.Join(home, ".meta-cli")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
