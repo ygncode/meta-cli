@@ -27,6 +27,14 @@ func New(version, token string) *Client {
 	}
 }
 
+func NewWithHTTPClient(baseURL, token string, hc *http.Client) *Client {
+	return &Client{
+		baseURL:    baseURL,
+		httpClient: hc,
+		token:      token,
+	}
+}
+
 func (c *Client) WithToken(token string) *Client {
 	return &Client{
 		baseURL:    c.baseURL,
