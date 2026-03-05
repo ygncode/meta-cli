@@ -24,8 +24,11 @@ You need a Facebook App to get your **App ID** and **App Secret**. In developmen
 
 1. Go to [Meta for Developers](https://developers.facebook.com/) and log in
 2. Click **My Apps** > **Create App**
-3. Select **Other** as the use case, then choose **Business** as the app type
-4. Give it a name (e.g. "My Page CLI") and click **Create App**
+3. Select **Other** as the use case
+4. Choose **None** as the app type (not "Business" — Business apps use a different permission model that doesn't support traditional `pages_*` scopes)
+5. Give it a name (e.g. "My Page CLI") and click **Create App**
+
+> **Important:** The app type cannot be changed after creation. If you already created a "Business" type app and get "Invalid Scopes" errors, create a new app with type "None".
 
 ### 2. Get App ID and App Secret
 
@@ -36,18 +39,27 @@ You need a Facebook App to get your **App ID** and **App Secret**. In developmen
 ### 3. Add Facebook Login
 
 1. In the app dashboard, click **Add Product**
-2. Find **Facebook Login** and click **Set Up**
+2. Find **Facebook Login** (not "Facebook Login for Business") and click **Set Up**
 3. Go to **Facebook Login** > **Settings**
 4. Under **Valid OAuth Redirect URIs**, add `https://localhost/`
 5. Click **Save Changes**
 
-### 4. Connect a Facebook Page
+### 4. Add Permissions
 
-1. Go to **App Settings** > **Advanced**
-2. Under **App Page**, connect the Facebook Page you want to manage
-3. Alternatively, the page will be automatically discovered during `auth login` if you are an admin of the page
+1. Go to **App Review** > **Permissions and Features**
+2. Request the following permissions (click **Get Advanced Access** for each):
+   - `pages_show_list`
+   - `pages_read_engagement`
+   - `pages_manage_posts`
+   - `pages_manage_engagement`
+   - `pages_messaging`
+   - `pages_manage_metadata`
 
-> **Note:** In development mode, only your own Facebook account can use the app. This is fine for personal use — no app review required.
+> **Note:** In development mode, you (as the app admin) can use these permissions on your own pages without app review. Advanced Access is only needed for other users.
+
+### 5. Connect a Facebook Page
+
+You must be an admin of the Facebook Page you want to manage. The page will be automatically discovered during `auth login`.
 
 ## Quick Start
 
@@ -125,7 +137,7 @@ Config file: `~/.config/meta-cli/config.json`
 {
   "default_account": "default",
   "default_page": "123456789",
-  "graph_api_version": "v21.0",
+  "graph_api_version": "v25.0",
   "webhook_port": 8080,
   "rag_dir": "./docs",
   "db_path": ""

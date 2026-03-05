@@ -14,8 +14,8 @@ func TestDefault(t *testing.T) {
 	if cfg.DefaultAccount != "default" {
 		t.Errorf("expected default account, got %s", cfg.DefaultAccount)
 	}
-	if cfg.GraphAPIVersion != "v21.0" {
-		t.Errorf("expected v21.0, got %s", cfg.GraphAPIVersion)
+	if cfg.GraphAPIVersion != "v25.0" {
+		t.Errorf("expected v25.0, got %s", cfg.GraphAPIVersion)
 	}
 	if cfg.WebhookPort != 8080 {
 		t.Errorf("expected 8080, got %d", cfg.WebhookPort)

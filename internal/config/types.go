@@ -17,7 +17,7 @@ type Account struct {
 func Default() *Config {
 	return &Config{
 		DefaultAccount:  "default",
-		GraphAPIVersion: "v21.0",
+		GraphAPIVersion: "v25.0",
 		WebhookPort:     8080,
 	}
 }
