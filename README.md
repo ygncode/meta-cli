@@ -25,41 +25,37 @@ You need a Facebook App to get your **App ID** and **App Secret**. In developmen
 1. Go to [Meta for Developers](https://developers.facebook.com/) and log in
 2. Click **My Apps** > **Create App**
 3. Select **Other** as the use case
-4. Choose **None** as the app type (not "Business" — Business apps use a different permission model that doesn't support traditional `pages_*` scopes)
+4. Choose **None** as the app type (not "Business" — Business apps use "Facebook Login for Business" which doesn't support traditional `pages_*` scopes)
 5. Give it a name (e.g. "My Page CLI") and click **Create App**
 
-> **Important:** The app type cannot be changed after creation. If you already created a "Business" type app and get "Invalid Scopes" errors, create a new app with type "None".
+> **Important:** The app type cannot be changed after creation. If you get "Invalid Scopes" errors, create a new app with type "None".
 
-### 2. Get App ID and App Secret
+### 2. Add the Page Management Use Case
 
-1. In your app dashboard, go to **App Settings** > **Basic**
-2. Copy the **App ID**
-3. Click **Show** next to **App Secret** and copy it
+1. In your app dashboard, go to **Use Cases**
+2. Click **Add Use Case** (or **Customize**)
+3. Select **"Manage everything on your Page"**
+4. This enables the required permissions: `pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`, `pages_manage_engagement`, `pages_show_list`
 
 ### 3. Add Facebook Login
 
-1. In the app dashboard, click **Add Product**
+1. In the app dashboard, go to **Products** > **Add Product**
 2. Find **Facebook Login** (not "Facebook Login for Business") and click **Set Up**
 3. Go to **Facebook Login** > **Settings**
 4. Under **Valid OAuth Redirect URIs**, add `https://localhost/`
 5. Click **Save Changes**
 
-### 4. Add Permissions
+### 4. Get App ID and App Secret
 
-1. Go to **App Review** > **Permissions and Features**
-2. Request the following permissions (click **Get Advanced Access** for each):
-   - `pages_show_list`
-   - `pages_read_engagement`
-   - `pages_manage_posts`
-   - `pages_manage_engagement`
-   - `pages_messaging`
-   - `pages_manage_metadata`
-
-> **Note:** In development mode, you (as the app admin) can use these permissions on your own pages without app review. Advanced Access is only needed for other users.
+1. Go to **App Settings** > **Basic**
+2. Copy the **App ID**
+3. Click **Show** next to **App Secret** and copy it
 
 ### 5. Connect a Facebook Page
 
-You must be an admin of the Facebook Page you want to manage. The page will be automatically discovered during `auth login`.
+You must be an admin of the Facebook Page you want to manage. Your pages will be automatically discovered during `auth login`.
+
+> **Note:** In development mode, only you (the app admin) can use the app on your own pages — no app review required.
 
 ## Quick Start
 
@@ -150,6 +146,7 @@ The following Facebook permissions are requested during login:
 
 - `pages_show_list` - List pages you manage
 - `pages_read_engagement` - Read page engagement data
+- `pages_read_user_content` - Read posts and comments
 - `pages_manage_posts` - Create and delete posts
 - `pages_manage_engagement` - Manage comments
 - `pages_messaging` - Send and receive Messenger messages
