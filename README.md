@@ -30,12 +30,14 @@ You need a Facebook App to get your **App ID** and **App Secret**. In developmen
 
 > **Important:** The app type cannot be changed after creation. If you get "Invalid Scopes" errors, create a new app with type "None".
 
-### 2. Add the Page Management Use Case
+### 2. Add Use Cases
 
-1. In your app dashboard, go to **Use Cases**
-2. Click **Add Use Case** (or **Customize**)
-3. Select **"Manage everything on your Page"**
-4. This enables the required permissions: `pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`, `pages_manage_engagement`, `pages_show_list`
+In your app dashboard, go to **Use Cases** > **Add Use Cases** and add both:
+
+1. **"Manage everything on your Page"** — enables `pages_manage_posts`, `pages_read_engagement`, `pages_read_user_content`, `pages_manage_engagement`, `pages_show_list`
+2. **"Engage with customers on Messenger from Meta"** — enables `pages_messaging` for sending/receiving Messenger messages
+
+After adding each use case, click **Customize** and make sure all the permissions listed are toggled on.
 
 ### 3. Add Facebook Login
 
