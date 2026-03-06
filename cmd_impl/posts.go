@@ -47,7 +47,8 @@ func postListCmd() *cobra.Command {
 }
 
 func postCreateCmd() *cobra.Command {
-	var message, photo, link string
+	var message, link string
+	var photos []string
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -63,8 +64,10 @@ func postCreateCmd() *cobra.Command {
 
 			var result *posts.CreateResult
 			switch {
-			case photo != "":
-				result, err = svc.CreatePhoto(ctx, rctx.PageID, message, photo)
+			case len(photos) > 1:
+				result, err = svc.CreatePhotos(ctx, rctx.PageID, message, photos)
+			case len(photos) == 1:
+				result, err = svc.CreatePhoto(ctx, rctx.PageID, message, photos[0])
 			case link != "":
 				result, err = svc.CreateLink(ctx, rctx.PageID, message, link)
 			case message != "":
@@ -82,7 +85,7 @@ func postCreateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&message, "message", "", "Post message text")
-	cmd.Flags().StringVar(&photo, "photo", "", "Path to photo file")
+	cmd.Flags().StringArrayVar(&photos, "photo", nil, "Path to photo file (repeatable for multiple images)")
 	cmd.Flags().StringVar(&link, "link", "", "URL to share")
 	return cmd
 }

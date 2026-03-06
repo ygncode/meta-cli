@@ -91,6 +91,36 @@ func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath st
 	return &result, nil
 }
 
+func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, photoPaths []string) (*CreateResult, error) {
+	// Step 1: upload each photo as unpublished
+	mediaIDs := make([]string, 0, len(photoPaths))
+	for _, p := range photoPaths {
+		var photoResult struct {
+			ID string `json:"id"`
+		}
+		fields := map[string]string{"published": "false"}
+		if err := s.client.PostMultipart(ctx, pageID+"/photos", fields, p, &photoResult); err != nil {
+			return nil, fmt.Errorf("upload %s: %w", p, err)
+		}
+		mediaIDs = append(mediaIDs, photoResult.ID)
+	}
+
+	// Step 2: create feed post with attached_media
+	body := url.Values{}
+	if message != "" {
+		body.Set("message", message)
+	}
+	for i, id := range mediaIDs {
+		body.Set(fmt.Sprintf("attached_media[%d]", i), fmt.Sprintf("{\"media_fbid\":\"%s\"}", id))
+	}
+
+	var result CreateResult
+	if err := s.client.Post(ctx, pageID+"/feed", body, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (s *Service) CreateLink(ctx context.Context, pageID, message, link string) (*CreateResult, error) {
 	var result CreateResult
 	body := url.Values{"link": {link}}

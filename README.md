@@ -74,6 +74,12 @@ meta-cli pages set-default YOUR_PAGE_ID
 # Create a text post
 meta-cli post create --message "Hello from meta-cli!"
 
+# Create a photo post
+meta-cli post create --photo /path/to/image.jpg --message "Check this out!"
+
+# Create a multi-photo post
+meta-cli post create --photo img1.jpg --photo img2.jpg --message "Album post"
+
 # List recent posts
 meta-cli post list --page YOUR_PAGE_ID
 

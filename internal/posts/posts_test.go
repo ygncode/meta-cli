@@ -3,6 +3,7 @@ package posts_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -147,6 +148,58 @@ func TestPostsCreatePhoto(t *testing.T) {
 	}
 	if result.ID != "photo_1" {
 		t.Errorf("expected photo_1, got %s", result.ID)
+	}
+}
+
+func TestPostsCreatePhotos(t *testing.T) {
+	callCount := 0
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		callCount++
+		ct := r.Header.Get("Content-Type")
+		if strings.Contains(ct, "multipart/form-data") {
+			// Unpublished photo upload
+			r.ParseMultipartForm(1 << 20)
+			if r.FormValue("published") != "false" {
+				t.Errorf("expected published=false, got %s", r.FormValue("published"))
+			}
+			json.NewEncoder(w).Encode(map[string]string{"id": fmt.Sprintf("media_%d", callCount)})
+		} else {
+			// Feed post with attached_media
+			r.ParseForm()
+			if r.FormValue("message") != "album" {
+				t.Errorf("expected message=album, got %s", r.FormValue("message"))
+			}
+			if r.FormValue("attached_media[0]") == "" || r.FormValue("attached_media[1]") == "" {
+				t.Errorf("expected attached_media[0] and [1]")
+			}
+			json.NewEncoder(w).Encode(map[string]string{"id": "111_album"})
+		}
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	files := []string{
+		filepath.Join(tmpDir, "a.jpg"),
+		filepath.Join(tmpDir, "b.jpg"),
+	}
+	for _, f := range files {
+		os.WriteFile(f, []byte("fake jpg"), 0o644)
+	}
+
+	svc := posts.New(client)
+	result, err := svc.CreatePhotos(context.Background(), "111", "album", files)
+	if err != nil {
+		t.Fatalf("CreatePhotos: %v", err)
+	}
+	if result.ID != "111_album" {
+		t.Errorf("expected 111_album, got %s", result.ID)
+	}
+	// 2 photo uploads + 1 feed post = 3 calls
+	if callCount != 3 {
+		t.Errorf("expected 3 API calls, got %d", callCount)
 	}
 }
 
