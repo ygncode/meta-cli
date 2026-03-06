@@ -62,37 +62,41 @@ You must be an admin of the Facebook Page you want to manage. Your pages will be
 ## Quick Start
 
 ```bash
-# Login with your Facebook App credentials
+# --- Auth ---
 meta-cli auth login --app-id YOUR_APP_ID --app-secret YOUR_APP_SECRET
+meta-cli auth status
+meta-cli auth refresh
 
-# List your pages
+# --- Pages ---
 meta-cli pages list
-
-# Set default page
 meta-cli pages set-default YOUR_PAGE_ID
 
-# Create a text post
+# --- Posts ---
 meta-cli post create --message "Hello from meta-cli!"
-
-# Create a photo post
 meta-cli post create --photo /path/to/image.jpg --message "Check this out!"
-
-# Create a multi-photo post
 meta-cli post create --photo img1.jpg --photo img2.jpg --message "Album post"
+meta-cli post list
+meta-cli post delete POST_ID
 
-# List recent posts
-meta-cli post list --page YOUR_PAGE_ID
-
-# List comments on a post
+# --- Comments ---
 meta-cli comment list POST_ID
+meta-cli comment reply COMMENT_ID --message "Thanks!"
+meta-cli comment hide COMMENT_ID
+meta-cli comment unhide COMMENT_ID
+meta-cli comment delete COMMENT_ID
 
-# Send a Messenger message
+# --- Messenger ---
 meta-cli messenger send --psid USER_PSID --message "Hello!"
+meta-cli messenger list
 
-# Start webhook server with RAG auto-reply
+# --- Webhook ---
 meta-cli webhook serve --verify-token YOUR_TOKEN --rag-dir ./docs
+meta-cli webhook subscribe
+meta-cli webhook status
+meta-cli webhook stop
 
-# Search RAG documents
+# --- RAG ---
+meta-cli rag index ./docs
 meta-cli rag search "how to reset password"
 ```
 
@@ -116,6 +120,9 @@ meta-cli rag search "how to reset password"
 | `messenger send` | Send a Messenger message |
 | `messenger list` | List stored messages |
 | `webhook serve` | Start webhook HTTP server |
+| `webhook subscribe` | Subscribe page to webhook fields |
+| `webhook status` | Check if webhook server is running |
+| `webhook stop` | Stop the webhook server |
 | `rag index` | Show index stats for documents |
 | `rag search` | Search documents by query |
 
