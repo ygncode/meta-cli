@@ -37,8 +37,9 @@ type Participant struct {
 }
 
 type MsgPayload struct {
-	MID  string `json:"mid"`
-	Text string `json:"text"`
+	MID    string `json:"mid"`
+	Text   string `json:"text"`
+	IsEcho bool   `json:"is_echo,omitempty"`
 }
 
 type Postback struct {

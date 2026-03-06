@@ -17,7 +17,7 @@ func NewService(client *graph.Client) *Service {
 	return &Service{client: client}
 }
 
-func (s *Service) Send(ctx context.Context, psid, text string) error {
+func (s *Service) Send(ctx context.Context, psid, text string) (string, error) {
 	body := url.Values{
 		"messaging_type": {"RESPONSE"},
 		"recipient":      {mustJSON(map[string]string{"id": psid})},
@@ -29,9 +29,9 @@ func (s *Service) Send(ctx context.Context, psid, text string) error {
 		MessageID   string `json:"message_id"`
 	}
 	if err := s.client.Post(ctx, "me/messages", body, &result); err != nil {
-		return fmt.Errorf("send message: %w", err)
+		return "", fmt.Errorf("send message: %w", err)
 	}
-	return nil
+	return result.MessageID, nil
 }
 
 func (s *Service) SendTyping(ctx context.Context, psid string, on bool) error {
@@ -46,6 +46,22 @@ func (s *Service) SendTyping(ctx context.Context, psid string, on bool) error {
 
 	if err := s.client.Post(ctx, "me/messages", body, &struct{}{}); err != nil {
 		return fmt.Errorf("send typing: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) SubscribeWebhook(ctx context.Context) error {
+	body := url.Values{
+		"subscribed_fields": {"messages,message_echoes"},
+	}
+	var result struct {
+		Success bool `json:"success"`
+	}
+	if err := s.client.Post(ctx, "me/subscribed_apps", body, &result); err != nil {
+		return fmt.Errorf("subscribe webhook: %w", err)
+	}
+	if !result.Success {
+		return fmt.Errorf("subscribe webhook: API returned success=false")
 	}
 	return nil
 }

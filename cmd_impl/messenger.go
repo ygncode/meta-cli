@@ -2,6 +2,7 @@ package cmd_impl
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/ygncode/meta-cli/internal/messenger"
@@ -38,8 +39,35 @@ func messengerSendCmd() *cobra.Command {
 			}
 
 			svc := messenger.NewService(rctx.Client)
-			if err := svc.Send(cmd.Context(), psid, message); err != nil {
+			mid, err := svc.Send(cmd.Context(), psid, message)
+			if err != nil {
 				return err
+			}
+
+			dbPath := rctx.Config.DBPath
+			if dbPath == "" {
+				var pathErr error
+				dbPath, pathErr = messenger.DefaultDBPath()
+				if pathErr != nil {
+					return pathErr
+				}
+			}
+
+			store, err := messenger.OpenStore(dbPath)
+			if err != nil {
+				return err
+			}
+			defer store.Close()
+
+			if err := store.SaveMessage(&messenger.Message{
+				ID:         mid,
+				PSID:       psid,
+				PageID:     rctx.PageID,
+				Text:       message,
+				Direction:  "out",
+				ReceivedAt: time.Now(),
+			}); err != nil {
+				return fmt.Errorf("save sent message: %w", err)
 			}
 
 			rctx.Printer.OK(fmt.Sprintf("Message sent to %s", psid))

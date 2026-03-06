@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ygncode/meta-cli/internal/messenger"
 	"github.com/ygncode/meta-cli/internal/rag"
@@ -221,5 +222,74 @@ func TestWebhookWithRAG(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestWebhookEchoMessage(t *testing.T) {
+	store := openTestStore(t)
+
+	handler := &messenger.WebhookHandler{
+		VerifyToken: "tok",
+		AppSecret:   "secret",
+		PageID:      "page_1",
+		Store:       store,
+	}
+
+	payload := messenger.WebhookPayload{
+		Object: "page",
+		Entry: []messenger.Entry{
+			{
+				ID:   "page_1",
+				Time: 1234567890000,
+				Messaging: []messenger.Messaging{
+					{
+						Sender:    messenger.Participant{ID: "page_1"},
+						Recipient: messenger.Participant{ID: "user_1"},
+						Timestamp: 1234567890000,
+						Message:   &messenger.MsgPayload{MID: "mid_echo", Text: "Hi from page", IsEcho: true},
+					},
+				},
+			},
+		},
+	}
+	body, _ := json.Marshal(payload)
+	sig := makeSignature(body, "secret")
+
+	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(string(body)))
+	req.Header.Set("X-Hub-Signature-256", sig)
+	w := httptest.NewRecorder()
+
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	// processPayload runs in a goroutine; wait for it
+	var msgs []messenger.Message
+	for i := 0; i < 50; i++ {
+		time.Sleep(10 * time.Millisecond)
+		var err error
+		msgs, err = store.ListMessages("page_1", 10)
+		if err != nil {
+			t.Fatalf("ListMessages: %v", err)
+		}
+		if len(msgs) > 0 {
+			break
+		}
+	}
+
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+	msg := msgs[0]
+	if msg.Direction != "out" {
+		t.Errorf("expected direction out, got %s", msg.Direction)
+	}
+	if msg.PSID != "user_1" {
+		t.Errorf("expected PSID user_1, got %s", msg.PSID)
+	}
+	if msg.ID != "mid_echo" {
+		t.Errorf("expected ID mid_echo, got %s", msg.ID)
 	}
 }

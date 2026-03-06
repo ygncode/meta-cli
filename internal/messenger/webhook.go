@@ -98,13 +98,25 @@ func (h *WebhookHandler) processPayload(body []byte) {
 				continue
 			}
 
-			msg := &Message{
-				ID:         m.Message.MID,
-				PSID:       m.Sender.ID,
-				PageID:     h.PageID,
-				Text:       m.Message.Text,
-				Direction:  "in",
-				ReceivedAt: time.Unix(m.Timestamp/1000, 0),
+			var msg *Message
+			if m.Message.IsEcho {
+				msg = &Message{
+					ID:         m.Message.MID,
+					PSID:       m.Recipient.ID,
+					PageID:     h.PageID,
+					Text:       m.Message.Text,
+					Direction:  "out",
+					ReceivedAt: time.Unix(m.Timestamp/1000, 0),
+				}
+			} else {
+				msg = &Message{
+					ID:         m.Message.MID,
+					PSID:       m.Sender.ID,
+					PageID:     h.PageID,
+					Text:       m.Message.Text,
+					Direction:  "in",
+					ReceivedAt: time.Unix(m.Timestamp/1000, 0),
+				}
 			}
 
 			if h.Store != nil {
@@ -114,6 +126,11 @@ func (h *WebhookHandler) processPayload(body []byte) {
 				if err := h.Store.SaveMessage(msg); err != nil {
 					log.Printf("Failed to save message: %v", err)
 				}
+			}
+
+			if m.Message.IsEcho {
+				log.Printf("Echo message to %s: %s", msg.PSID, msg.Text)
+				continue
 			}
 
 			log.Printf("Message from %s: %s", msg.PSID, msg.Text)
@@ -132,7 +149,7 @@ func (h *WebhookHandler) autoReply(msg *Message) {
 	}
 
 	reply := results[0].Excerpt
-	if err := h.Messenger.Send(context.Background(), msg.PSID, reply); err != nil {
+	if _, err := h.Messenger.Send(context.Background(), msg.PSID, reply); err != nil {
 		log.Printf("Failed to send auto-reply to %s: %v", msg.PSID, err)
 		return
 	}

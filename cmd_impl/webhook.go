@@ -24,6 +24,7 @@ func init() {
 	}
 
 	webhookCmd.AddCommand(webhookServeCmd())
+	webhookCmd.AddCommand(webhookSubscribeCmd())
 	webhookCmd.AddCommand(webhookStatusCmd())
 	webhookCmd.AddCommand(webhookStopCmd())
 	rootCmd.AddCommand(webhookCmd)
@@ -75,12 +76,18 @@ func webhookServeCmd() *cobra.Command {
 			}
 			defer store.Close()
 
+			svc := messenger.NewService(rctx.Client)
+			if err := svc.SubscribeWebhook(cmd.Context()); err != nil {
+				return fmt.Errorf("subscribe webhook fields: %w", err)
+			}
+			log.Printf("Subscribed to webhook fields: messages, message_echoes")
+
 			handler := &messenger.WebhookHandler{
 				VerifyToken:  verifyToken,
 				AppSecret:    appSecret,
 				PageID:       rctx.PageID,
 				Store:        store,
-				Messenger:    messenger.NewService(rctx.Client),
+				Messenger:    svc,
 				RAGThreshold: ragThreshold,
 			}
 
@@ -190,6 +197,27 @@ func daemonize() error {
 	fmt.Printf("Webhook server started (PID %d)\n", child.Process.Pid)
 	fmt.Printf("Log: %s\n", logPath)
 	return nil
+}
+
+func webhookSubscribeCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "subscribe",
+		Short: "Subscribe page to webhook fields (messages, message_echoes)",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			svc := messenger.NewService(rctx.Client)
+			if err := svc.SubscribeWebhook(cmd.Context()); err != nil {
+				return err
+			}
+
+			rctx.Printer.OK("Subscribed to webhook fields: messages, message_echoes")
+			return nil
+		},
+	}
 }
 
 func webhookStatusCmd() *cobra.Command {

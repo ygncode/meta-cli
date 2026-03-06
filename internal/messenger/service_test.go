@@ -31,9 +31,12 @@ func TestServiceSend(t *testing.T) {
 	defer srv.Close()
 
 	svc := messenger.NewService(client)
-	err := svc.Send(context.Background(), "user_1", "hello")
+	mid, err := svc.Send(context.Background(), "user_1", "hello")
 	if err != nil {
 		t.Fatalf("Send: %v", err)
+	}
+	if mid != "mid_resp" {
+		t.Errorf("expected message ID mid_resp, got %s", mid)
 	}
 }
 
@@ -47,7 +50,7 @@ func TestServiceSendError(t *testing.T) {
 	defer srv.Close()
 
 	svc := messenger.NewService(client)
-	err := svc.Send(context.Background(), "user_1", "hello")
+	_, err := svc.Send(context.Background(), "user_1", "hello")
 	if err == nil {
 		t.Error("expected error")
 	}
@@ -60,9 +63,36 @@ func TestServiceSendCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := svc.Send(ctx, "user_1", "hello")
+	_, err := svc.Send(ctx, "user_1", "hello")
 	if err == nil {
 		t.Error("expected error with cancelled context")
+	}
+}
+
+func TestServiceSubscribeWebhook(t *testing.T) {
+	srv, client := newTestGraphClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	})
+	defer srv.Close()
+
+	svc := messenger.NewService(client)
+	if err := svc.SubscribeWebhook(context.Background()); err != nil {
+		t.Fatalf("SubscribeWebhook: %v", err)
+	}
+}
+
+func TestServiceSubscribeWebhookFailure(t *testing.T) {
+	srv, client := newTestGraphClient(t, func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]bool{"success": false})
+	})
+	defer srv.Close()
+
+	svc := messenger.NewService(client)
+	if err := svc.SubscribeWebhook(context.Background()); err == nil {
+		t.Error("expected error for success=false")
 	}
 }
 
