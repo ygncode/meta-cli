@@ -90,7 +90,7 @@ meta-cli messenger send --psid USER_PSID --message "Hello!"
 meta-cli messenger list
 
 # --- Webhook ---
-meta-cli webhook serve --verify-token YOUR_TOKEN --rag-dir ./docs
+meta-cli webhook serve --verify-token YOUR_TOKEN
 meta-cli webhook subscribe
 meta-cli webhook status
 meta-cli webhook stop

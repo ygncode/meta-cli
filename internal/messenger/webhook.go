@@ -1,7 +1,6 @@
 package messenger
 
 import (
-	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -12,18 +11,14 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/ygncode/meta-cli/internal/rag"
 )
 
 type WebhookHandler struct {
-	VerifyToken  string
-	AppSecret    string
-	PageID       string
-	Store        *Store
-	Messenger    *Service
-	RAG          *rag.Index
-	RAGThreshold float64
+	VerifyToken string
+	AppSecret   string
+	PageID      string
+	Store       *Store
+	Messenger   *Service
 }
 
 func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -134,42 +129,7 @@ func (h *WebhookHandler) processPayload(body []byte) {
 			}
 
 			log.Printf("Message from %s: %s", msg.PSID, msg.Text)
-
-			if h.RAG != nil && h.Messenger != nil {
-				h.autoReply(msg)
-			}
 		}
 	}
 }
 
-func (h *WebhookHandler) autoReply(msg *Message) {
-	results := h.RAG.Search(msg.Text, 3)
-	if len(results) == 0 || results[0].Score < h.RAGThreshold {
-		return
-	}
-
-	reply := results[0].Excerpt
-	if _, err := h.Messenger.Send(context.Background(), msg.PSID, reply); err != nil {
-		log.Printf("Failed to send auto-reply to %s: %v", msg.PSID, err)
-		return
-	}
-
-	if h.Store != nil {
-		if err := h.Store.SaveMessage(&Message{
-			ID:          fmt.Sprintf("auto_%s_%d", msg.ID, time.Now().UnixMilli()),
-			PSID:        msg.PSID,
-			PageID:      h.PageID,
-			Text:        reply,
-			Direction:   "out",
-			AutoReplied: true,
-			ReceivedAt:  time.Now(),
-		}); err != nil {
-			log.Printf("Failed to save auto-reply message: %v", err)
-		}
-		if err := h.Store.MarkAutoReplied(msg.ID); err != nil {
-			log.Printf("Failed to mark auto-replied for %s: %v", msg.ID, err)
-		}
-	}
-
-	log.Printf("Auto-replied to %s", msg.PSID)
-}

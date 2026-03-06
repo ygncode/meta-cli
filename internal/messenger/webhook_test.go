@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/ygncode/meta-cli/internal/messenger"
-	"github.com/ygncode/meta-cli/internal/rag"
 )
 
 func makeSignature(body []byte, secret string) string {
@@ -171,57 +170,6 @@ func TestWebhookMethodNotAllowed(t *testing.T) {
 
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("expected 405, got %d", w.Code)
-	}
-}
-
-func TestWebhookWithRAG(t *testing.T) {
-	store := openTestStore(t)
-
-	// Build a simple RAG index
-	docs := []rag.Document{
-		{ID: "1", Path: "faq.md", Title: "Reset Password", Content: "To reset your password, go to Settings and click Reset."},
-	}
-	idx := rag.Build(docs)
-
-	// We need a mock messenger service - since Service depends on graph.Client
-	// which makes real HTTP calls, we'll test that the handler accepts the RAG
-	// index without error. The actual auto-reply behavior requires a working
-	// Messenger service.
-	handler := &messenger.WebhookHandler{
-		VerifyToken:  "tok",
-		AppSecret:    "secret",
-		PageID:       "page_1",
-		Store:        store,
-		RAG:          idx,
-		RAGThreshold: 0.1,
-		// Messenger is nil, so autoReply won't be called (requires both RAG and Messenger)
-	}
-
-	payload := messenger.WebhookPayload{
-		Object: "page",
-		Entry: []messenger.Entry{
-			{
-				Messaging: []messenger.Messaging{
-					{
-						Sender:    messenger.Participant{ID: "user_1"},
-						Timestamp: 1234567890000,
-						Message:   &messenger.MsgPayload{MID: "mid_rag", Text: "reset password"},
-					},
-				},
-			},
-		},
-	}
-	body, _ := json.Marshal(payload)
-	sig := makeSignature(body, "secret")
-
-	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(string(body)))
-	req.Header.Set("X-Hub-Signature-256", sig)
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("expected 200, got %d", w.Code)
 	}
 }
 

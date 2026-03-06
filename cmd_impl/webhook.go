@@ -14,7 +14,6 @@ import (
 	"github.com/ygncode/meta-cli/internal/config"
 	"github.com/ygncode/meta-cli/internal/daemon"
 	"github.com/ygncode/meta-cli/internal/messenger"
-	"github.com/ygncode/meta-cli/internal/rag"
 )
 
 func init() {
@@ -33,8 +32,6 @@ func init() {
 func webhookServeCmd() *cobra.Command {
 	var port int
 	var verifyToken string
-	var ragDir string
-	var ragThreshold float64
 	var daemonFlag bool
 
 	cmd := &cobra.Command{
@@ -83,24 +80,11 @@ func webhookServeCmd() *cobra.Command {
 			log.Printf("Subscribed to webhook fields: messages, message_echoes")
 
 			handler := &messenger.WebhookHandler{
-				VerifyToken:  verifyToken,
-				AppSecret:    appSecret,
-				PageID:       rctx.PageID,
-				Store:        store,
-				Messenger:    svc,
-				RAGThreshold: ragThreshold,
-			}
-
-			if ragDir == "" {
-				ragDir = rctx.Config.RAGDir
-			}
-			if ragDir != "" {
-				docs, err := rag.LoadDir(ragDir)
-				if err != nil {
-					return fmt.Errorf("load RAG docs: %w", err)
-				}
-				handler.RAG = rag.Build(docs)
-				log.Printf("RAG index loaded: %d documents from %s", len(docs), ragDir)
+				VerifyToken: verifyToken,
+				AppSecret:   appSecret,
+				PageID:      rctx.PageID,
+				Store:       store,
+				Messenger:   svc,
 			}
 
 			if port == 0 {
@@ -141,8 +125,6 @@ func webhookServeCmd() *cobra.Command {
 
 	cmd.Flags().IntVar(&port, "port", 0, "Port to listen on (default from config)")
 	cmd.Flags().StringVar(&verifyToken, "verify-token", "", "Webhook verify token")
-	cmd.Flags().StringVar(&ragDir, "rag-dir", "", "Directory with RAG documents")
-	cmd.Flags().Float64Var(&ragThreshold, "rag-threshold", 0.5, "Minimum RAG score for auto-reply")
 	cmd.Flags().BoolVar(&daemonFlag, "daemon", false, "Run in background")
 	return cmd
 }
