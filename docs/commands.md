@@ -23,7 +23,8 @@ meta-cli
 │   └── delete         Delete a comment
 ├── messenger
 │   ├── send           Send a Messenger message
-│   └── list           List stored messages
+│   ├── list           List stored messages
+│   └── history        List conversation history with a user
 ├── config
 │   ├── set            Set a config value
 │   ├── get            Get a config value
@@ -355,6 +356,29 @@ meta-cli messenger list --limit 100
 
 ---
 
+### `messenger history`
+
+List conversation history with a specific user (both directions), ordered chronologically (oldest first).
+
+```bash
+meta-cli messenger history --psid USER_PSID
+meta-cli messenger history --psid USER_PSID --limit 50
+meta-cli messenger history --psid USER_PSID --json
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--psid` | string | (required) | Page-scoped user ID |
+| `--limit` | int | `20` | Number of messages to fetch |
+
+**Output:** Table with message ID, PSID, text, direction (in/out), and timestamp. Messages are returned in chronological order (oldest first), which is useful for viewing conversation context.
+
+**Note:** This reads from the local database. It is designed to be called by the OpenClaw agent to get conversation context before replying.
+
+**Requires:** Page ID (no authentication needed - reads local DB only)
+
+---
+
 ## Config Commands
 
 ### `config set`
@@ -371,7 +395,7 @@ meta-cli config set webhook_port 9090
 | `key` | Yes | Config key to set |
 | `value` | Yes | Value to assign |
 
-**Supported keys:** `default_account`, `default_page`, `graph_api_version`, `webhook_port`, `verify_token`, `rag_dir`, `db_path`
+**Supported keys:** `default_account`, `default_page`, `graph_api_version`, `webhook_port`, `verify_token`, `rag_dir`, `db_path`, `debounce_seconds`, `hooks_endpoint`, `hooks_token`, `auto_reply`, `prompt_template`
 
 **Behavior:** Loads `~/.meta-cli/config.json`, sets the field, and saves.
 
@@ -435,6 +459,10 @@ meta-cli webhook serve --verify-token MY_TOKEN --daemon
 | `--port` | int | from config (`8080`) | HTTP port to listen on |
 | `--verify-token` | string | config or `$META_VERIFY_TOKEN` | Webhook verification token |
 | `--daemon` | bool | `false` | Run as background daemon |
+| `--auto-reply` | bool | `false` | Enable auto-reply via OpenClaw (overrides config) |
+| `--debounce` | int | from config (`3`) | Debounce window in seconds (overrides config) |
+| `--hooks-endpoint` | string | from config | OpenClaw hooks endpoint URL (overrides config) |
+| `--hooks-token` | string | from config | OpenClaw hooks auth token (overrides config) |
 
 **Behavior:**
 1. Subscribes the page to webhook fields (`messages`, `message_echoes`)
@@ -555,6 +583,7 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `comment delete` | Yes | Yes | Yes |
 | `messenger send` | Yes | Yes | Yes |
 | `messenger list` | - | Yes | - |
+| `messenger history` | - | Yes | - |
 | `webhook serve` | Yes | Yes | Yes |
 | `webhook subscribe` | Yes | Yes | Yes |
 | `webhook status` | - | - | - |

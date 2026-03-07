@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -170,6 +171,200 @@ func TestWebhookMethodNotAllowed(t *testing.T) {
 
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Errorf("expected 405, got %d", w.Code)
+	}
+}
+
+// mockDebouncer records calls to Add for testing.
+type mockDebouncer struct {
+	mu    sync.Mutex
+	calls []debouncerCall
+}
+
+type debouncerCall struct {
+	PSID string
+	Msg  messenger.DebouncerMessage
+}
+
+func (m *mockDebouncer) Add(psid string, msg messenger.DebouncerMessage) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.calls = append(m.calls, debouncerCall{PSID: psid, Msg: msg})
+}
+
+func (m *mockDebouncer) getCalls() []debouncerCall {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]debouncerCall(nil), m.calls...)
+}
+
+func TestWebhookWithDebouncer(t *testing.T) {
+	store := openTestStore(t)
+	deb := &mockDebouncer{}
+
+	handler := &messenger.WebhookHandler{
+		VerifyToken: "tok",
+		AppSecret:   "secret",
+		PageID:      "page_1",
+		Store:       store,
+		Debouncer:   deb,
+	}
+
+	payload := messenger.WebhookPayload{
+		Object: "page",
+		Entry: []messenger.Entry{
+			{
+				ID:   "page_1",
+				Time: 1234567890000,
+				Messaging: []messenger.Messaging{
+					{
+						Sender:    messenger.Participant{ID: "user_1"},
+						Recipient: messenger.Participant{ID: "page_1"},
+						Timestamp: 1234567890000,
+						Message:   &messenger.MsgPayload{MID: "mid_200", Text: "Hello debouncer!"},
+					},
+				},
+			},
+		},
+	}
+	body, _ := json.Marshal(payload)
+	sig := makeSignature(body, "secret")
+
+	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(string(body)))
+	req.Header.Set("X-Hub-Signature-256", sig)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	// processPayload runs in a goroutine; wait for debouncer call
+	var calls []debouncerCall
+	for i := 0; i < 50; i++ {
+		time.Sleep(10 * time.Millisecond)
+		calls = deb.getCalls()
+		if len(calls) > 0 {
+			break
+		}
+	}
+
+	if len(calls) != 1 {
+		t.Fatalf("expected 1 debouncer call, got %d", len(calls))
+	}
+	if calls[0].PSID != "user_1" {
+		t.Errorf("expected PSID user_1, got %s", calls[0].PSID)
+	}
+	if calls[0].Msg.Text != "Hello debouncer!" {
+		t.Errorf("expected 'Hello debouncer!', got %s", calls[0].Msg.Text)
+	}
+}
+
+func TestWebhookWithoutDebouncer(t *testing.T) {
+	store := openTestStore(t)
+
+	handler := &messenger.WebhookHandler{
+		VerifyToken: "tok",
+		AppSecret:   "secret",
+		PageID:      "page_1",
+		Store:       store,
+		// Debouncer is nil — backward compatible
+	}
+
+	payload := messenger.WebhookPayload{
+		Object: "page",
+		Entry: []messenger.Entry{
+			{
+				ID:   "page_1",
+				Time: 1234567890000,
+				Messaging: []messenger.Messaging{
+					{
+						Sender:    messenger.Participant{ID: "user_1"},
+						Recipient: messenger.Participant{ID: "page_1"},
+						Timestamp: 1234567890000,
+						Message:   &messenger.MsgPayload{MID: "mid_300", Text: "No debouncer"},
+					},
+				},
+			},
+		},
+	}
+	body, _ := json.Marshal(payload)
+	sig := makeSignature(body, "secret")
+
+	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(string(body)))
+	req.Header.Set("X-Hub-Signature-256", sig)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	// Wait for message to be stored
+	var msgs []messenger.Message
+	for i := 0; i < 50; i++ {
+		time.Sleep(10 * time.Millisecond)
+		var err error
+		msgs, err = store.ListMessages("page_1", 10)
+		if err != nil {
+			t.Fatalf("ListMessages: %v", err)
+		}
+		if len(msgs) > 0 {
+			break
+		}
+	}
+
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message stored, got %d", len(msgs))
+	}
+}
+
+func TestWebhookEchoNotDebounced(t *testing.T) {
+	store := openTestStore(t)
+	deb := &mockDebouncer{}
+
+	handler := &messenger.WebhookHandler{
+		VerifyToken: "tok",
+		AppSecret:   "secret",
+		PageID:      "page_1",
+		Store:       store,
+		Debouncer:   deb,
+	}
+
+	payload := messenger.WebhookPayload{
+		Object: "page",
+		Entry: []messenger.Entry{
+			{
+				ID:   "page_1",
+				Time: 1234567890000,
+				Messaging: []messenger.Messaging{
+					{
+						Sender:    messenger.Participant{ID: "page_1"},
+						Recipient: messenger.Participant{ID: "user_1"},
+						Timestamp: 1234567890000,
+						Message:   &messenger.MsgPayload{MID: "mid_echo2", Text: "Echo msg", IsEcho: true},
+					},
+				},
+			},
+		},
+	}
+	body, _ := json.Marshal(payload)
+	sig := makeSignature(body, "secret")
+
+	req := httptest.NewRequest(http.MethodPost, "/webhook", strings.NewReader(string(body)))
+	req.Header.Set("X-Hub-Signature-256", sig)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	// Wait for processPayload goroutine to complete
+	time.Sleep(100 * time.Millisecond)
+
+	calls := deb.getCalls()
+	if len(calls) != 0 {
+		t.Errorf("expected 0 debouncer calls for echo messages, got %d", len(calls))
 	}
 }
 

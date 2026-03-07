@@ -32,6 +32,13 @@ type Config struct {
     DBPath          string             `json:"db_path"`
     VerifyToken     string             `json:"verify_token"`
     Accounts        map[string]Account `json:"accounts,omitempty"`
+
+    // Auto-reply pipeline
+    DebounceSeconds int    `json:"debounce_seconds"`
+    HooksEndpoint   string `json:"hooks_endpoint"`
+    HooksToken      string `json:"hooks_token"`
+    AutoReply       bool   `json:"auto_reply"`
+    PromptTemplate  string `json:"prompt_template"`
 }
 
 type Account struct {
@@ -51,6 +58,11 @@ type Account struct {
 | `db_path` | string | `""` | Custom SQLite database path (empty = default) |
 | `verify_token` | string | `""` | Webhook verification token |
 | `accounts` | map | `{}` | Per-account configurations with App IDs |
+| `debounce_seconds` | int | `3` | Seconds to wait before batching messages |
+| `hooks_endpoint` | string | `""` | OpenClaw `/hooks/agent` endpoint URL |
+| `hooks_token` | string | `""` | Bearer token for OpenClaw hooks auth |
+| `auto_reply` | bool | `false` | Enable auto-reply via OpenClaw |
+| `prompt_template` | string | `""` | Go template for agent prompts |
 
 ### Example Config
 
@@ -63,6 +75,11 @@ type Account struct {
   "rag_dir": "./docs",
   "db_path": "",
   "verify_token": "",
+  "debounce_seconds": 3,
+  "hooks_endpoint": "",
+  "hooks_token": "",
+  "auto_reply": false,
+  "prompt_template": "",
   "accounts": {
     "default": {
       "app_id": "YOUR_APP_ID"
@@ -211,6 +228,9 @@ func (s *Store) SaveMessage(m *Message) error
 
 // List messages for a page, ordered by most recent
 func (s *Store) ListMessages(pageID string, limit int) ([]Message, error)
+
+// List recent messages for a PSID, ordered chronologically (oldest first)
+func (s *Store) RecentMessages(pageID, psid string, limit int) ([]Message, error)
 
 // Check if a message already exists (for deduplication)
 func (s *Store) MessageExists(id string) bool

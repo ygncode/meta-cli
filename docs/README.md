@@ -12,6 +12,7 @@ Detailed documentation for **meta-cli** - a Go CLI for managing Facebook Pages a
 | [Webhook System](./webhooks.md) | Webhook server, daemon mode, message processing pipeline |
 | [Data Storage](./storage.md) | Configuration, SQLite database, and OS keyring details |
 | [Graph API Client](./graph-api.md) | Meta Graph API integration, endpoints, and error handling |
+| [Auto-Reply Guide](./auto-reply.md) | OpenClaw integration for automatic Messenger replies |
 | [Development Guide](./development.md) | Building, testing, and contributing to the project |
 
 ## Quick Overview

@@ -103,3 +103,42 @@ func (s *Store) MarkAutoReplied(msgID string) error {
 	_, err := s.db.Exec(`UPDATE messages SET auto_replied = 1 WHERE id = ?`, msgID)
 	return err
 }
+
+// RecentMessages returns the last N messages (both in/out) for a PSID on a page,
+// ordered chronologically (oldest first).
+func (s *Store) RecentMessages(pageID, psid string, limit int) ([]Message, error) {
+	rows, err := s.db.Query(
+		`SELECT id, psid, page_id, text, direction, auto_replied, received_at
+		 FROM messages
+		 WHERE page_id = ? AND psid = ?
+		 ORDER BY received_at DESC
+		 LIMIT ?`,
+		pageID, psid, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var msgs []Message
+	for rows.Next() {
+		var m Message
+		var ts int64
+		var autoReplied int
+		if err := rows.Scan(&m.ID, &m.PSID, &m.PageID, &m.Text, &m.Direction, &autoReplied, &ts); err != nil {
+			return nil, err
+		}
+		m.ReceivedAt = time.Unix(ts, 0)
+		m.AutoReplied = autoReplied != 0
+		msgs = append(msgs, m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Reverse to get chronological order (oldest first)
+	for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
+		msgs[i], msgs[j] = msgs[j], msgs[i]
+	}
+	return msgs, nil
+}

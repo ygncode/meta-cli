@@ -9,10 +9,13 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/ygncode/meta-cli/internal/config"
 	"github.com/ygncode/meta-cli/internal/daemon"
+	"github.com/ygncode/meta-cli/internal/debounce"
+	"github.com/ygncode/meta-cli/internal/hooks"
 	"github.com/ygncode/meta-cli/internal/messenger"
 )
 
@@ -33,6 +36,10 @@ func webhookServeCmd() *cobra.Command {
 	var port int
 	var verifyToken string
 	var daemonFlag bool
+	var autoReplyFlag bool
+	var debounceSeconds int
+	var hooksEndpoint string
+	var hooksToken string
 
 	cmd := &cobra.Command{
 		Use:   "serve",
@@ -90,6 +97,52 @@ func webhookServeCmd() *cobra.Command {
 				Messenger:   svc,
 			}
 
+			// Auto-reply pipeline setup
+			enableAutoReply := autoReplyFlag || rctx.Config.AutoReply
+			if enableAutoReply {
+				ep := hooksEndpoint
+				if ep == "" {
+					ep = rctx.Config.HooksEndpoint
+				}
+				tk := hooksToken
+				if tk == "" {
+					tk = rctx.Config.HooksToken
+				}
+				if ep == "" {
+					return fmt.Errorf("auto-reply requires hooks_endpoint (use --hooks-endpoint or config set hooks_endpoint)")
+				}
+				if tk == "" {
+					return fmt.Errorf("auto-reply requires hooks_token (use --hooks-token or config set hooks_token)")
+				}
+
+				debounceSecs := debounceSeconds
+				if debounceSecs == 0 {
+					debounceSecs = rctx.Config.DebounceSeconds
+				}
+				if debounceSecs == 0 {
+					debounceSecs = 3
+				}
+
+				promptTmpl := rctx.Config.PromptTemplate
+				hooksClient := hooks.NewClient(ep, tk)
+				pageID := rctx.PageID
+
+				deb := debounce.New(time.Duration(debounceSecs)*time.Second, func(psid string, msgs []debounce.Message) {
+					prompt, err := hooks.RenderPrompt(promptTmpl, psid, pageID, msgs)
+					if err != nil {
+						log.Printf("render prompt error for %s: %v", psid, err)
+						return
+					}
+					if err := hooksClient.CallAgent(context.Background(), prompt, psid); err != nil {
+						log.Printf("hooks/agent error for %s: %v", psid, err)
+					}
+				})
+				defer deb.Stop()
+
+				handler.Debouncer = &messenger.DebouncerAdapter{D: deb}
+				log.Printf("Auto-reply enabled (debounce=%ds, endpoint=%s)", debounceSecs, ep)
+			}
+
 			if port == 0 {
 				port = rctx.Config.WebhookPort
 			}
@@ -129,6 +182,10 @@ func webhookServeCmd() *cobra.Command {
 	cmd.Flags().IntVar(&port, "port", 0, "Port to listen on (default from config)")
 	cmd.Flags().StringVar(&verifyToken, "verify-token", "", "Webhook verify token")
 	cmd.Flags().BoolVar(&daemonFlag, "daemon", false, "Run in background")
+	cmd.Flags().BoolVar(&autoReplyFlag, "auto-reply", false, "Enable auto-reply (overrides config)")
+	cmd.Flags().IntVar(&debounceSeconds, "debounce", 0, "Debounce window in seconds (overrides config)")
+	cmd.Flags().StringVar(&hooksEndpoint, "hooks-endpoint", "", "OpenClaw hooks endpoint (overrides config)")
+	cmd.Flags().StringVar(&hooksToken, "hooks-token", "", "OpenClaw hooks token (overrides config)")
 	return cmd
 }
 

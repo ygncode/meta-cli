@@ -96,6 +96,11 @@ func configListCmd() *cobra.Command {
 				{"verify_token", cfg.VerifyToken},
 				{"rag_dir", cfg.RAGDir},
 				{"db_path", cfg.DBPath},
+				{"debounce_seconds", strconv.Itoa(cfg.DebounceSeconds)},
+				{"hooks_endpoint", cfg.HooksEndpoint},
+				{"hooks_token", cfg.HooksToken},
+				{"auto_reply", strconv.FormatBool(cfg.AutoReply)},
+				{"prompt_template", cfg.PromptTemplate},
 			}
 			return rctx.Printer.Print(entries)
 		},
@@ -122,8 +127,26 @@ func setConfigField(cfg *config.Config, key, value string) error {
 		cfg.RAGDir = value
 	case "db_path":
 		cfg.DBPath = value
+	case "debounce_seconds":
+		secs, err := strconv.Atoi(value)
+		if err != nil {
+			return fmt.Errorf("debounce_seconds must be an integer: %w", err)
+		}
+		cfg.DebounceSeconds = secs
+	case "hooks_endpoint":
+		cfg.HooksEndpoint = value
+	case "hooks_token":
+		cfg.HooksToken = value
+	case "auto_reply":
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("auto_reply must be true or false: %w", err)
+		}
+		cfg.AutoReply = b
+	case "prompt_template":
+		cfg.PromptTemplate = value
 	default:
-		return fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, rag_dir, db_path", key)
+		return fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, rag_dir, db_path, debounce_seconds, hooks_endpoint, hooks_token, auto_reply, prompt_template", key)
 	}
 	return nil
 }
@@ -144,7 +167,17 @@ func getConfigField(cfg *config.Config, key string) (string, error) {
 		return cfg.RAGDir, nil
 	case "db_path":
 		return cfg.DBPath, nil
+	case "debounce_seconds":
+		return strconv.Itoa(cfg.DebounceSeconds), nil
+	case "hooks_endpoint":
+		return cfg.HooksEndpoint, nil
+	case "hooks_token":
+		return cfg.HooksToken, nil
+	case "auto_reply":
+		return strconv.FormatBool(cfg.AutoReply), nil
+	case "prompt_template":
+		return cfg.PromptTemplate, nil
 	default:
-		return "", fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, rag_dir, db_path", key)
+		return "", fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, rag_dir, db_path, debounce_seconds, hooks_endpoint, hooks_token, auto_reply, prompt_template", key)
 	}
 }

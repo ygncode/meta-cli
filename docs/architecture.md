@@ -27,6 +27,8 @@ meta-cli/
 │   ├── comments/              # Comment management service
 │   ├── messenger/             # Messaging + SQLite store + webhook handler
 │   ├── rag/                   # TF-IDF document search
+│   ├── debounce/              # Per-PSID message debouncing
+│   ├── hooks/                 # OpenClaw /hooks/agent integration
 │   └── daemon/                # Background process management
 ├── go.mod                     # Module definition
 ├── go.sum                     # Dependency checksums
@@ -82,6 +84,8 @@ cmd/meta/main.go
         ├── internal/comments    (comment service)
         ├── internal/messenger   (messaging + webhooks + SQLite)
         ├── internal/rag         (document search)
+        ├── internal/debounce    (message debouncing)
+        ├── internal/hooks       (OpenClaw hook caller)
         └── internal/daemon      (process management)
 ```
 

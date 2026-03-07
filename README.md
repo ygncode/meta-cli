@@ -88,6 +88,7 @@ meta-cli comment delete COMMENT_ID
 # --- Messenger ---
 meta-cli messenger send --psid USER_PSID --message "Hello!"
 meta-cli messenger list
+meta-cli messenger history --psid USER_PSID
 
 # --- Config ---
 meta-cli config set verify_token YOUR_TOKEN
@@ -99,6 +100,13 @@ meta-cli webhook serve --verify-token YOUR_TOKEN
 meta-cli webhook subscribe
 meta-cli webhook status
 meta-cli webhook stop
+
+# --- Auto-Reply (with OpenClaw) ---
+meta-cli config set auto_reply true
+meta-cli config set hooks_endpoint http://127.0.0.1:18789/hooks/agent
+meta-cli config set hooks_token YOUR_TOKEN
+meta-cli config set rag_dir ./knowledge-base
+meta-cli webhook serve --auto-reply --daemon
 
 # --- RAG ---
 meta-cli rag index ./docs
@@ -124,6 +132,7 @@ meta-cli rag search "how to reset password"
 | `comment delete` | Delete a comment |
 | `messenger send` | Send a Messenger message |
 | `messenger list` | List stored messages |
+| `messenger history` | List conversation history with a user |
 | `config set` | Set a config value |
 | `config get` | Get a config value |
 | `config list` | List all config values |
@@ -161,9 +170,22 @@ Config file: `~/.meta-cli/config.json`
   "webhook_port": 8080,
   "rag_dir": "./docs",
   "db_path": "",
-  "verify_token": ""
+  "verify_token": "",
+  "debounce_seconds": 3,
+  "hooks_endpoint": "",
+  "hooks_token": "",
+  "auto_reply": false,
+  "prompt_template": ""
 }
 ```
+
+| Field | Description |
+|-------|-------------|
+| `debounce_seconds` | Debounce window for message batching (default: 3) |
+| `hooks_endpoint` | OpenClaw webhook endpoint URL |
+| `hooks_token` | OpenClaw webhook auth token |
+| `auto_reply` | Enable auto-reply pipeline (true/false) |
+| `prompt_template` | Go template for agent prompt |
 
 ## Permissions
 
@@ -193,6 +215,8 @@ internal/
   comments/                Comment management
   messenger/               Send messages + SQLite store + webhook handler
   rag/                     TF-IDF search over markdown documents
+  debounce/                Message debouncing (per-user timer)
+  hooks/                   OpenClaw /hooks/agent caller
 ```
 
 ## License

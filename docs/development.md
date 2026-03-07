@@ -48,7 +48,7 @@ meta-cli/
 │   ├── pages.go                  # pages list/set-default
 │   ├── posts.go                  # post list/create/delete
 │   ├── comments.go               # comment list/reply/hide/unhide/delete
-│   ├── messenger.go              # messenger send/list
+│   ├── messenger.go              # messenger send/list/history
 │   ├── webhook.go                # webhook serve/subscribe/status/stop
 │   ├── config.go                 # config set/get/list
 │   └── rag.go                    # rag index/search
@@ -75,9 +75,16 @@ meta-cli/
 │   │   ├── service.go            # Send messages, subscribe webhooks
 │   │   ├── store.go              # SQLite message store
 │   │   ├── webhook.go            # Webhook HTTP handler
+│   │   ├── debounce_adapter.go   # Adapter for debounce.Debouncer
 │   │   └── types.go              # Message, webhook payload types
 │   ├── rag/                      # Document search
 │   │   └── (TF-IDF implementation)
+│   ├── debounce/                 # Message debouncing
+│   │   ├── debounce.go           # Per-PSID timer with batching
+│   │   └── debounce_test.go
+│   ├── hooks/                    # OpenClaw integration
+│   │   ├── hooks.go              # /hooks/agent caller + prompt rendering
+│   │   └── hooks_test.go
 │   └── daemon/                   # Process management
 │       └── daemon.go             # PID files, process signals
 ├── go.mod                        # Module definition

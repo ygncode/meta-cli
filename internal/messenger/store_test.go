@@ -1,6 +1,7 @@
 package messenger_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -143,6 +144,115 @@ func TestStoreMarkAutoReplied(t *testing.T) {
 	msgs, _ := store.ListMessages("p", 10)
 	if !msgs[0].AutoReplied {
 		t.Error("expected AutoReplied to be true after marking")
+	}
+}
+
+func TestRecentMessages(t *testing.T) {
+	store := openTestStore(t)
+
+	now := time.Now().Truncate(time.Second)
+	store.SaveMessage(&messenger.Message{ID: "1", PSID: "user_1", PageID: "page_1", Text: "hello", Direction: "in", ReceivedAt: now})
+	store.SaveMessage(&messenger.Message{ID: "2", PSID: "user_2", PageID: "page_1", Text: "other", Direction: "in", ReceivedAt: now})
+	store.SaveMessage(&messenger.Message{ID: "3", PSID: "user_1", PageID: "page_2", Text: "diff page", Direction: "in", ReceivedAt: now})
+
+	msgs, err := store.RecentMessages("page_1", "user_1", 10)
+	if err != nil {
+		t.Fatalf("RecentMessages: %v", err)
+	}
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message for user_1/page_1, got %d", len(msgs))
+	}
+	if msgs[0].Text != "hello" {
+		t.Errorf("expected 'hello', got %s", msgs[0].Text)
+	}
+}
+
+func TestRecentMessagesOrder(t *testing.T) {
+	store := openTestStore(t)
+
+	now := time.Now().Truncate(time.Second)
+	store.SaveMessage(&messenger.Message{ID: "1", PSID: "u1", PageID: "p1", Text: "first", Direction: "in", ReceivedAt: now})
+	store.SaveMessage(&messenger.Message{ID: "2", PSID: "u1", PageID: "p1", Text: "second", Direction: "out", ReceivedAt: now.Add(time.Second)})
+	store.SaveMessage(&messenger.Message{ID: "3", PSID: "u1", PageID: "p1", Text: "third", Direction: "in", ReceivedAt: now.Add(2 * time.Second)})
+
+	msgs, err := store.RecentMessages("p1", "u1", 10)
+	if err != nil {
+		t.Fatalf("RecentMessages: %v", err)
+	}
+	if len(msgs) != 3 {
+		t.Fatalf("expected 3 messages, got %d", len(msgs))
+	}
+	// Should be oldest first
+	if msgs[0].Text != "first" {
+		t.Errorf("expected 'first' at index 0, got %s", msgs[0].Text)
+	}
+	if msgs[1].Text != "second" {
+		t.Errorf("expected 'second' at index 1, got %s", msgs[1].Text)
+	}
+	if msgs[2].Text != "third" {
+		t.Errorf("expected 'third' at index 2, got %s", msgs[2].Text)
+	}
+}
+
+func TestRecentMessagesLimit(t *testing.T) {
+	store := openTestStore(t)
+
+	now := time.Now().Truncate(time.Second)
+	for i := 0; i < 10; i++ {
+		store.SaveMessage(&messenger.Message{
+			ID: fmt.Sprintf("msg_%d", i), PSID: "u1", PageID: "p1",
+			Text: fmt.Sprintf("msg %d", i), Direction: "in",
+			ReceivedAt: now.Add(time.Duration(i) * time.Second),
+		})
+	}
+
+	msgs, err := store.RecentMessages("p1", "u1", 3)
+	if err != nil {
+		t.Fatalf("RecentMessages: %v", err)
+	}
+	if len(msgs) != 3 {
+		t.Fatalf("expected 3 messages with limit, got %d", len(msgs))
+	}
+	// Should return the 3 most recent, in chronological order
+	if msgs[0].Text != "msg 7" {
+		t.Errorf("expected 'msg 7', got %s", msgs[0].Text)
+	}
+	if msgs[2].Text != "msg 9" {
+		t.Errorf("expected 'msg 9', got %s", msgs[2].Text)
+	}
+}
+
+func TestRecentMessagesBothDirections(t *testing.T) {
+	store := openTestStore(t)
+
+	now := time.Now().Truncate(time.Second)
+	store.SaveMessage(&messenger.Message{ID: "1", PSID: "u1", PageID: "p1", Text: "question", Direction: "in", ReceivedAt: now})
+	store.SaveMessage(&messenger.Message{ID: "2", PSID: "u1", PageID: "p1", Text: "answer", Direction: "out", ReceivedAt: now.Add(time.Second)})
+
+	msgs, err := store.RecentMessages("p1", "u1", 10)
+	if err != nil {
+		t.Fatalf("RecentMessages: %v", err)
+	}
+	if len(msgs) != 2 {
+		t.Fatalf("expected 2 messages, got %d", len(msgs))
+	}
+	if msgs[0].Direction != "in" {
+		t.Errorf("expected first message direction 'in', got %s", msgs[0].Direction)
+	}
+	if msgs[1].Direction != "out" {
+		t.Errorf("expected second message direction 'out', got %s", msgs[1].Direction)
+	}
+}
+
+func TestRecentMessagesEmpty(t *testing.T) {
+	store := openTestStore(t)
+
+	msgs, err := store.RecentMessages("p1", "unknown_user", 10)
+	if err != nil {
+		t.Fatalf("RecentMessages: %v", err)
+	}
+	if len(msgs) != 0 {
+		t.Errorf("expected 0 messages for unknown PSID, got %d", len(msgs))
 	}
 }
 

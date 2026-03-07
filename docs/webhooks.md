@@ -28,11 +28,12 @@ The `WebhookHandler` implements `http.Handler` and processes two types of HTTP r
 
 ```go
 type WebhookHandler struct {
-    VerifyToken string     // Token for Meta's verification handshake
-    AppSecret   string     // App secret for HMAC signature validation
-    PageID      string     // Page ID for message association
-    Store       *Store     // SQLite message store
-    Messenger   *Service   // Messenger service (currently unused after auto-reply removal)
+    VerifyToken string              // Token for Meta's verification handshake
+    AppSecret   string              // App secret for HMAC signature validation
+    PageID      string              // Page ID for message association
+    Store       *Store              // SQLite message store
+    Messenger   *Service            // Messenger service
+    Debouncer   DebouncerInterface  // Per-PSID debouncer (nil = auto-reply disabled)
 }
 ```
 
@@ -235,3 +236,81 @@ Meta Platform creates message_echo event
   ▼
 Same webhook flow, but direction = "out"
 ```
+
+## Auto-Reply Pipeline
+
+When `auto_reply` is enabled, the webhook server integrates with [OpenClaw](https://github.com/openclaw) to automatically respond to incoming messages using an AI agent.
+
+### Architecture
+
+```
+Facebook Messenger
+       │
+       ▼
+Meta Platform ──── POST /webhook ────► meta-cli webhook server
+                                              │
+                                    ┌─────────┼─────────┐
+                                    ▼         ▼         ▼
+                              Signature    Parse     Store in
+                              Validation   Payload   SQLite DB
+                                                        │
+                                                        ▼
+                                                   Debouncer
+                                                   (per-PSID)
+                                                        │
+                                                        ▼ (after quiet period)
+                                                   POST /hooks/agent
+                                                   (OpenClaw)
+                                                        │
+                                                        ▼
+                                                   Agent runs:
+                                                   - rag search
+                                                   - messenger history
+                                                   - messenger send
+```
+
+### Message Debouncing
+
+When a user sends multiple messages rapidly, the debouncer collects them before triggering the agent:
+
+```
+msg1 from user_1 at T=0  → start timer(user_1, 3s)
+msg2 from user_1 at T=1  → reset timer(user_1, 3s)
+msg3 from user_1 at T=2  → reset timer(user_1, 3s)
+T=5 (3s after last msg)  → callback(user_1, [msg1, msg2, msg3])
+```
+
+Each PSID has an independent timer. The debounce window is configurable via `debounce_seconds` (default: 3).
+
+### OpenClaw Integration
+
+After debouncing, a POST request is sent to OpenClaw's `/hooks/agent` endpoint:
+
+```json
+{
+    "message": "<rendered prompt with batched messages>",
+    "name": "FB Messenger",
+    "deliver": false,
+    "sessionKey": "hook:fb:<psid>"
+}
+```
+
+- `deliver: false` — the agent sends replies itself via `meta-cli messenger send`
+- `sessionKey` — each FB user gets their own isolated session for cross-turn context
+
+### Configuration
+
+| Config Key | Default | Description |
+|-----------|---------|-------------|
+| `auto_reply` | `false` | Enable auto-reply pipeline |
+| `hooks_endpoint` | `""` | OpenClaw `/hooks/agent` URL |
+| `hooks_token` | `""` | Bearer token for OpenClaw auth |
+| `debounce_seconds` | `3` | Seconds to wait before batching |
+| `prompt_template` | (built-in) | Go template for the agent prompt |
+
+### Troubleshooting
+
+- **"hooks/agent error" in logs** — check OpenClaw is running and token matches
+- **No replies being sent** — verify the `meta-cli-fb` skill is installed in OpenClaw and `rag_dir` is set
+- **Replies are slow** — check `debounce_seconds` and the model speed in OpenClaw
+- **Duplicate replies** — message deduplication is handled by the store's `INSERT OR IGNORE`

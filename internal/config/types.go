@@ -9,6 +9,13 @@ type Config struct {
 	DBPath          string             `json:"db_path,omitempty"`
 	VerifyToken     string             `json:"verify_token,omitempty"`
 	Accounts        map[string]Account `json:"accounts,omitempty"`
+
+	// Auto-reply pipeline fields
+	DebounceSeconds int    `json:"debounce_seconds,omitempty"`
+	HooksEndpoint   string `json:"hooks_endpoint,omitempty"`
+	HooksToken      string `json:"hooks_token,omitempty"`
+	AutoReply       bool   `json:"auto_reply,omitempty"`
+	PromptTemplate  string `json:"prompt_template,omitempty"`
 }
 
 type Account struct {
@@ -20,5 +27,6 @@ func Default() *Config {
 		DefaultAccount:  "default",
 		GraphAPIVersion: "v25.0",
 		WebhookPort:     8080,
+		DebounceSeconds: 3,
 	}
 }

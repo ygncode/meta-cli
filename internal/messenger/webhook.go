@@ -13,12 +13,24 @@ import (
 	"time"
 )
 
+// DebouncerInterface abstracts the debounce.Debouncer for testability.
+type DebouncerInterface interface {
+	Add(psid string, msg DebouncerMessage)
+}
+
+// DebouncerMessage matches debounce.Message fields.
+type DebouncerMessage struct {
+	ID   string
+	Text string
+}
+
 type WebhookHandler struct {
 	VerifyToken string
 	AppSecret   string
 	PageID      string
 	Store       *Store
 	Messenger   *Service
+	Debouncer   DebouncerInterface // nil = auto-reply disabled
 }
 
 func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -129,6 +141,14 @@ func (h *WebhookHandler) processPayload(body []byte) {
 			}
 
 			log.Printf("Message from %s: %s", msg.PSID, msg.Text)
+
+			// Feed inbound messages to debouncer for auto-reply
+			if h.Debouncer != nil {
+				h.Debouncer.Add(msg.PSID, DebouncerMessage{
+					ID:   msg.ID,
+					Text: msg.Text,
+				})
+			}
 		}
 	}
 }

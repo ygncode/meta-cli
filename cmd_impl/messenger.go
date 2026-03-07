@@ -16,6 +16,7 @@ func init() {
 
 	messengerCmd.AddCommand(messengerSendCmd())
 	messengerCmd.AddCommand(messengerListCmd())
+	messengerCmd.AddCommand(messengerHistoryCmd())
 	rootCmd.AddCommand(messengerCmd)
 }
 
@@ -118,5 +119,51 @@ func messengerListCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&limit, "limit", 50, "Number of messages to fetch")
+	return cmd
+}
+
+func messengerHistoryCmd() *cobra.Command {
+	var psid string
+	var limit int
+
+	cmd := &cobra.Command{
+		Use:   "history",
+		Short: "List conversation history with a user",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx := GetCtx(cmd)
+
+			if rctx.PageID == "" {
+				return fmt.Errorf("no page specified, use --page or set default_page in config")
+			}
+			if psid == "" {
+				return fmt.Errorf("--psid is required")
+			}
+
+			dbPath := rctx.Config.DBPath
+			if dbPath == "" {
+				var err error
+				dbPath, err = messenger.DefaultDBPath()
+				if err != nil {
+					return err
+				}
+			}
+
+			store, err := messenger.OpenStore(dbPath)
+			if err != nil {
+				return err
+			}
+			defer store.Close()
+
+			msgs, err := store.RecentMessages(rctx.PageID, psid, limit)
+			if err != nil {
+				return err
+			}
+
+			return rctx.Printer.Print(msgs)
+		},
+	}
+
+	cmd.Flags().StringVar(&psid, "psid", "", "Page-scoped user ID")
+	cmd.Flags().IntVar(&limit, "limit", 20, "Number of messages to fetch")
 	return cmd
 }
