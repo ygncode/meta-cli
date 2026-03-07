@@ -24,6 +24,10 @@ meta-cli
 ├── messenger
 │   ├── send           Send a Messenger message
 │   └── list           List stored messages
+├── config
+│   ├── set            Set a config value
+│   ├── get            Get a config value
+│   └── list           List all config values
 ├── webhook
 │   ├── serve          Start webhook HTTP server
 │   ├── subscribe      Subscribe page to webhook fields
@@ -351,6 +355,64 @@ meta-cli messenger list --limit 100
 
 ---
 
+## Config Commands
+
+### `config set`
+
+Set a configuration value.
+
+```bash
+meta-cli config set verify_token my-secret-token
+meta-cli config set webhook_port 9090
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `key` | Yes | Config key to set |
+| `value` | Yes | Value to assign |
+
+**Supported keys:** `default_account`, `default_page`, `graph_api_version`, `webhook_port`, `verify_token`, `rag_dir`, `db_path`
+
+**Behavior:** Loads `~/.meta-cli/config.json`, sets the field, and saves.
+
+**Requires:** Nothing
+
+---
+
+### `config get`
+
+Get a configuration value.
+
+```bash
+meta-cli config get verify_token
+meta-cli config get webhook_port
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `key` | Yes | Config key to read |
+
+**Output:** The value of the specified key.
+
+**Requires:** Nothing
+
+---
+
+### `config list`
+
+List all configuration values.
+
+```bash
+meta-cli config list
+meta-cli config list --json
+```
+
+**Output:** Table of all config key-value pairs.
+
+**Requires:** Nothing
+
+---
+
 ## Webhook Commands
 
 ### `webhook serve`
@@ -371,7 +433,7 @@ meta-cli webhook serve --verify-token MY_TOKEN --daemon
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--port` | int | from config (`8080`) | HTTP port to listen on |
-| `--verify-token` | string | `$META_VERIFY_TOKEN` | Webhook verification token |
+| `--verify-token` | string | config or `$META_VERIFY_TOKEN` | Webhook verification token |
 | `--daemon` | bool | `false` | Run as background daemon |
 
 **Behavior:**
@@ -497,6 +559,9 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `webhook subscribe` | Yes | Yes | Yes |
 | `webhook status` | - | - | - |
 | `webhook stop` | - | - | - |
+| `config set` | - | - | - |
+| `config get` | - | - | - |
+| `config list` | - | - | - |
 | `rag index` | - | - | - |
 | `rag search` | - | - | - |
 
@@ -504,4 +569,4 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 
 | Variable | Description |
 |----------|-------------|
-| `META_VERIFY_TOKEN` | Webhook verification token (alternative to `--verify-token` flag) |
+| `META_VERIFY_TOKEN` | Webhook verification token (alternative to `--verify-token` flag or `config set verify_token`) |

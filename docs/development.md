@@ -50,6 +50,7 @@ meta-cli/
 │   ├── comments.go               # comment list/reply/hide/unhide/delete
 │   ├── messenger.go              # messenger send/list
 │   ├── webhook.go                # webhook serve/subscribe/status/stop
+│   ├── config.go                 # config set/get/list
 │   └── rag.go                    # rag index/search
 ├── internal/                     # Internal packages
 │   ├── auth/                     # OAuth flow + keyring storage

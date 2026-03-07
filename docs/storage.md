@@ -30,6 +30,7 @@ type Config struct {
     WebhookPort     int                `json:"webhook_port"`
     RAGDir          string             `json:"rag_dir"`
     DBPath          string             `json:"db_path"`
+    VerifyToken     string             `json:"verify_token"`
     Accounts        map[string]Account `json:"accounts,omitempty"`
 }
 
@@ -48,6 +49,7 @@ type Account struct {
 | `webhook_port` | int | `8080` | Default port for the webhook server |
 | `rag_dir` | string | `""` | Directory containing documents for RAG search |
 | `db_path` | string | `""` | Custom SQLite database path (empty = default) |
+| `verify_token` | string | `""` | Webhook verification token |
 | `accounts` | map | `{}` | Per-account configurations with App IDs |
 
 ### Example Config
@@ -60,6 +62,7 @@ type Account struct {
   "webhook_port": 8080,
   "rag_dir": "./docs",
   "db_path": "",
+  "verify_token": "",
   "accounts": {
     "default": {
       "app_id": "YOUR_APP_ID"
@@ -89,7 +92,7 @@ func Load() (*Config, error)
 func (c *Config) Save() error
 ```
 
-Writes the current config struct to the JSON file. Used by `pages set-default` and `auth login` when storing the App ID.
+Writes the current config struct to the JSON file. Used by `pages set-default`, `auth login`, and `config set`.
 
 ---
 
