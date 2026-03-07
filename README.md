@@ -89,6 +89,11 @@ meta-cli comment delete COMMENT_ID
 meta-cli messenger send --psid USER_PSID --message "Hello!"
 meta-cli messenger list
 
+# --- Config ---
+meta-cli config set verify_token YOUR_TOKEN
+meta-cli config get verify_token
+meta-cli config list
+
 # --- Webhook ---
 meta-cli webhook serve --verify-token YOUR_TOKEN
 meta-cli webhook subscribe
@@ -119,6 +124,9 @@ meta-cli rag search "how to reset password"
 | `comment delete` | Delete a comment |
 | `messenger send` | Send a Messenger message |
 | `messenger list` | List stored messages |
+| `config set` | Set a config value |
+| `config get` | Get a config value |
+| `config list` | List all config values |
 | `webhook serve` | Start webhook HTTP server |
 | `webhook subscribe` | Subscribe page to webhook fields |
 | `webhook status` | Check if webhook server is running |
@@ -152,7 +160,8 @@ Config file: `~/.meta-cli/config.json`
   "graph_api_version": "v25.0",
   "webhook_port": 8080,
   "rag_dir": "./docs",
-  "db_path": ""
+  "db_path": "",
+  "verify_token": ""
 }
 ```
 

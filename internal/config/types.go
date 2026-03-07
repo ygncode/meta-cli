@@ -7,6 +7,7 @@ type Config struct {
 	WebhookPort     int                `json:"webhook_port,omitempty"`
 	RAGDir          string             `json:"rag_dir,omitempty"`
 	DBPath          string             `json:"db_path,omitempty"`
+	VerifyToken     string             `json:"verify_token,omitempty"`
 	Accounts        map[string]Account `json:"accounts,omitempty"`
 }
 

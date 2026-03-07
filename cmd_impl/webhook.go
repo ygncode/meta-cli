@@ -53,10 +53,13 @@ func webhookServeCmd() *cobra.Command {
 			}
 
 			if verifyToken == "" {
+				verifyToken = rctx.Config.VerifyToken
+			}
+			if verifyToken == "" {
 				verifyToken = os.Getenv("META_VERIFY_TOKEN")
 			}
 			if verifyToken == "" {
-				return fmt.Errorf("--verify-token or META_VERIFY_TOKEN is required")
+				return fmt.Errorf("--verify-token, config verify_token, or META_VERIFY_TOKEN is required")
 			}
 
 			dbPath := rctx.Config.DBPath
