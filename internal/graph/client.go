@@ -126,6 +126,24 @@ func (c *Client) Delete(ctx context.Context, path string, out any) error {
 	return c.do(req, out)
 }
 
+func (c *Client) DeleteWithParams(ctx context.Context, path string, params url.Values, out any) error {
+	u, err := url.Parse(c.baseURL + "/" + path)
+	if err != nil {
+		return err
+	}
+	if params == nil {
+		params = url.Values{}
+	}
+	params.Set("access_token", c.token)
+	u.RawQuery = params.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u.String(), nil)
+	if err != nil {
+		return err
+	}
+	return c.do(req, out)
+}
+
 func (c *Client) do(req *http.Request, out any) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

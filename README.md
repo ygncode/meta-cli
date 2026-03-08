@@ -93,6 +93,14 @@ meta-cli comment hide COMMENT_ID
 meta-cli comment unhide COMMENT_ID
 meta-cli comment delete COMMENT_ID
 
+# --- Labels ---
+meta-cli label list
+meta-cli label create --name "VIP"
+meta-cli label delete LABEL_ID
+meta-cli label assign LABEL_ID --psid USER_PSID
+meta-cli label remove LABEL_ID --psid USER_PSID
+meta-cli label list-by-user USER_PSID
+
 # --- Messenger ---
 meta-cli messenger send --psid USER_PSID --message "Hello!"
 meta-cli messenger list
@@ -140,6 +148,12 @@ meta-cli rag search "how to reset password"
 | `comment hide` | Hide a comment |
 | `comment unhide` | Unhide a comment |
 | `comment delete` | Delete a comment |
+| `label list` | List all custom labels for the page |
+| `label create` | Create a new custom label |
+| `label delete` | Delete a custom label |
+| `label assign` | Assign a label to a user |
+| `label remove` | Remove a label from a user |
+| `label list-by-user` | List labels assigned to a user |
 | `messenger send` | Send a Messenger message |
 | `messenger list` | List stored messages |
 | `messenger history` | List conversation history with a user |
@@ -225,6 +239,7 @@ internal/
   pages/                   Page listing
   posts/                   Post CRUD operations
   comments/                Comment management
+  labels/                  Custom label management (CRUD + user assignment)
   messenger/               Send messages + SQLite store + webhook handler
   rag/                     TF-IDF search over markdown documents
   debounce/                Message debouncing (per-user timer)

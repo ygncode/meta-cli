@@ -23,6 +23,13 @@ meta-cli
 │   ├── hide           Hide a comment
 │   ├── unhide         Unhide a comment
 │   └── delete         Delete a comment
+├── label (alias: labels)
+│   ├── list           List all custom labels for the page
+│   ├── create         Create a new custom label
+│   ├── delete         Delete a custom label
+│   ├── assign         Assign a label to a user
+│   ├── remove         Remove a label from a user
+│   └── list-by-user   List labels assigned to a user
 ├── messenger
 │   ├── send           Send a Messenger message
 │   ├── list           List stored messages
@@ -359,6 +366,117 @@ meta-cli comment delete COMMENT_ID
 
 ---
 
+## Label Commands
+
+### `label list`
+
+List all custom labels for the page.
+
+```bash
+meta-cli label list
+meta-cli label list --json
+```
+
+**Output:** Table with label ID and name.
+
+**Requires:** Authentication + page
+
+---
+
+### `label create`
+
+Create a new custom label.
+
+```bash
+meta-cli label create --name "VIP"
+meta-cli label create -n "Support"
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `-n`, `--name` | string | Yes | Label name |
+
+**Output:** Created label ID.
+
+**Requires:** Authentication + page
+
+---
+
+### `label delete`
+
+Delete a custom label.
+
+```bash
+meta-cli label delete LABEL_ID
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `label-id` | Yes | The label ID to delete |
+
+**Requires:** Authentication + page
+
+---
+
+### `label assign`
+
+Assign a label to a user by their page-scoped ID (PSID).
+
+```bash
+meta-cli label assign LABEL_ID --psid USER_PSID
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `label-id` | Yes | The label ID to assign |
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--psid` | string | Yes | Page-scoped user ID |
+
+**Requires:** Authentication + page
+
+---
+
+### `label remove`
+
+Remove a label from a user.
+
+```bash
+meta-cli label remove LABEL_ID --psid USER_PSID
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `label-id` | Yes | The label ID to remove |
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--psid` | string | Yes | Page-scoped user ID |
+
+**Requires:** Authentication + page
+
+---
+
+### `label list-by-user`
+
+List all labels assigned to a specific user.
+
+```bash
+meta-cli label list-by-user USER_PSID
+meta-cli label list-by-user USER_PSID --json
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `psid` | Yes | Page-scoped user ID |
+
+**Output:** Table with label ID and name.
+
+**Requires:** Authentication + page
+
+---
+
 ## Messenger Commands
 
 ### `messenger send`
@@ -629,6 +747,12 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `comment hide` | Yes | Yes | Yes |
 | `comment unhide` | Yes | Yes | Yes |
 | `comment delete` | Yes | Yes | Yes |
+| `label list` | Yes | Yes | Yes |
+| `label create` | Yes | Yes | Yes |
+| `label delete` | Yes | Yes | Yes |
+| `label assign` | Yes | Yes | Yes |
+| `label remove` | Yes | Yes | Yes |
+| `label list-by-user` | Yes | Yes | Yes |
 | `messenger send` | Yes | Yes | Yes |
 | `messenger list` | - | Yes | - |
 | `messenger history` | - | Yes | - |

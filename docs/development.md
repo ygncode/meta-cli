@@ -48,6 +48,7 @@ meta-cli/
 │   ├── pages.go                  # pages list/set-default
 │   ├── posts.go                  # post list/create/delete
 │   ├── comments.go               # comment list/reply/hide/unhide/delete
+│   ├── labels.go                 # label list/create/delete/assign/remove/list-by-user
 │   ├── messenger.go              # messenger send/list/history
 │   ├── webhook.go                # webhook serve/subscribe/status/stop
 │   ├── config.go                 # config set/get/list
@@ -61,16 +62,21 @@ meta-cli/
 │   │   ├── config.go             # Load/save logic
 │   │   └── types.go              # Config + Account structs
 │   ├── graph/                    # Meta Graph API client
-│   │   ├── client.go             # HTTP client (Get/Post/PostMultipart/Delete)
+│   │   ├── client.go             # HTTP client (Get/Post/PostMultipart/Delete/DeleteWithParams)
 │   │   └── errors.go             # GraphError, APIError types
 │   ├── output/                   # Output formatting
 │   │   └── printer.go            # Table/JSON/TSV printer
 │   ├── pages/                    # Page listing
 │   │   └── service.go            # Pages service
 │   ├── posts/                    # Post management
-│   │   └── service.go            # Post CRUD service
+│   │   ├── service.go            # Post CRUD service
+│   │   └── types.go              # Post types
 │   ├── comments/                 # Comment management
-│   │   └── service.go            # Comment service
+│   │   ├── service.go            # Comment service
+│   │   └── types.go              # Comment types
+│   ├── labels/                   # Custom label management
+│   │   ├── service.go            # Label CRUD + user assignment
+│   │   └── types.go              # Label types
 │   ├── messenger/                # Messaging system
 │   │   ├── service.go            # Send messages, subscribe webhooks
 │   │   ├── store.go              # SQLite message store

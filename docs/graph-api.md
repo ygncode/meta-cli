@@ -112,12 +112,26 @@ Sends a DELETE request.
 client.Delete(ctx, postID, &result)
 ```
 
+### DELETE with Parameters
+
+```go
+func (c *Client) DeleteWithParams(ctx context.Context, path string, params url.Values, out any) error
+```
+
+Sends a DELETE request with URL-encoded query parameters. Used when the API requires additional data on a DELETE request (e.g., removing a label from a user).
+
+**Usage in services:**
+```go
+// Remove a label from a user
+client.DeleteWithParams(ctx, labelID+"/label", url.Values{"user": {userPSID}}, &result)
+```
+
 ## Request Pipeline
 
 All methods go through a common `do()` function:
 
 ```
-Client.Get/Post/PostMultipart/Delete
+Client.Get/Post/PostMultipart/Delete/DeleteWithParams
   └── Build *http.Request with context
        └── do(req, out)
             ├── httpClient.Do(req)           # Execute HTTP request
@@ -214,6 +228,17 @@ func IsPermissionDenied(err error) bool
 | Update comment message | POST | `/{comment_id}` (with message) |
 | Hide/unhide comment | POST | `/{comment_id}` (is_hidden=true/false) |
 | Delete comment | DELETE | `/{comment_id}` |
+
+### Labels
+
+| Operation | Method | Endpoint |
+|-----------|--------|----------|
+| List labels | GET | `/{page_id}/custom_labels` |
+| Create label | POST | `/{page_id}/custom_labels` |
+| Delete label | DELETE | `/{label_id}` |
+| Assign label to user | POST | `/{label_id}/label` (body: user=PSID) |
+| Remove label from user | DELETE | `/{label_id}/label` (query: user=PSID) |
+| List labels by user | GET | `/{user_psid}/custom_labels` |
 
 ### Messenger
 

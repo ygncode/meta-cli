@@ -17,10 +17,12 @@ Detailed documentation for **meta-cli** - a Go CLI for managing Facebook Pages a
 
 ## Quick Overview
 
-meta-cli is structured as a standard Go CLI application using the [Cobra](https://github.com/spf13/cobra) framework. It communicates with the [Meta Graph API](https://developers.facebook.com/docs/graph-api/) to manage Facebook Pages, posts, comments, and Messenger conversations.
+meta-cli is structured as a standard Go CLI application using the [Cobra](https://github.com/spf13/cobra) framework. It communicates with the [Meta Graph API](https://developers.facebook.com/docs/graph-api/) to manage Facebook Pages, posts, comments, labels, and Messenger conversations.
 
 ```
 User --> meta-cli (Cobra) --> Meta Graph API
+                |                (Posts, Comments, Labels,
+                |                 Messenger, Webhooks)
                 |
                 +--> OS Keyring (credentials)
                 +--> SQLite DB (message history)

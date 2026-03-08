@@ -13,7 +13,8 @@ meta-cli/
 │   ├── pages.go               # pages list/set-default
 │   ├── posts.go               # post list/create/delete
 │   ├── comments.go            # comment list/reply/hide/unhide/delete
-│   ├── messenger.go           # messenger send/list
+│   ├── labels.go              # label list/create/delete/assign/remove/list-by-user
+│   ├── messenger.go           # messenger send/list/history
 │   ├── webhook.go             # webhook serve/subscribe/status/stop
 │   ├── config.go              # config set/get/list
 │   └── rag.go                 # rag index/search
@@ -25,6 +26,7 @@ meta-cli/
 │   ├── pages/                 # Page listing service
 │   ├── posts/                 # Post CRUD operations
 │   ├── comments/              # Comment management service
+│   ├── labels/                # Custom label management (CRUD + user assignment)
 │   ├── messenger/             # Messaging + SQLite store + webhook handler
 │   ├── rag/                   # TF-IDF document search
 │   ├── debounce/              # Per-PSID message debouncing
@@ -82,6 +84,7 @@ cmd/meta/main.go
         ├── internal/pages       (page service)
         ├── internal/posts       (post service)
         ├── internal/comments    (comment service)
+        ├── internal/labels      (label service)
         ├── internal/messenger   (messaging + webhooks + SQLite)
         ├── internal/rag         (document search)
         ├── internal/debounce    (message debouncing)
@@ -136,8 +139,9 @@ Each domain area has a service struct that accepts a `graph.Client` and provides
 
 ```
 graph.Client (HTTP)
-  ├── posts.Service      → List, CreateText, CreatePhoto, CreatePhotos, CreateLink, Delete
-  ├── comments.Service   → List, Reply, SetHidden, Delete
+  ├── posts.Service      → List, CreateText, CreatePhoto, CreatePhotos, CreateLink, Update, Delete
+  ├── comments.Service   → List, Reply, Update, SetHidden, Delete
+  ├── labels.Service     → List, Create, Delete, Assign, Remove, ListByUser
   ├── pages.Service      → List
   └── messenger.Service  → Send, SendTyping, SubscribeWebhook
 ```

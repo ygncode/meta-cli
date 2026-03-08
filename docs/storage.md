@@ -142,10 +142,9 @@ The keyring service name is `"meta-cli"`. Two entries are stored per account:
 ```go
 type Store interface {
     GetTokens(account string) (*Tokens, error)
-    SetTokens(account string, tokens *Tokens) error
+    SaveTokens(account string, t *Tokens) error
     GetSecret(account string) (string, error)
-    SetSecret(account string, secret string) error
-    Delete(account string) error
+    SaveSecret(account string, secret string) error
 }
 ```
 
