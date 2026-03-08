@@ -395,7 +395,7 @@ meta-cli config set webhook_port 9090
 | `key` | Yes | Config key to set |
 | `value` | Yes | Value to assign |
 
-**Supported keys:** `default_account`, `default_page`, `graph_api_version`, `webhook_port`, `verify_token`, `rag_dir`, `db_path`, `debounce_seconds`, `hooks_endpoint`, `hooks_token`, `auto_reply`, `prompt_template`
+**Supported keys:** `default_account`, `default_page`, `graph_api_version`, `webhook_port`, `verify_token`, `redirect_uri`, `rag_dir`, `db_path`, `debounce_seconds`, `hooks_endpoint`, `hooks_token`, `auto_reply`, `prompt_template`
 
 **Behavior:** Loads `~/.meta-cli/config.json`, sets the field, and saves.
 

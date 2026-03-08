@@ -44,8 +44,14 @@ After adding each use case, click **Customize** and make sure all the permission
 1. In the app dashboard, go to **Products** > **Add Product**
 2. Find **Facebook Login** (not "Facebook Login for Business") and click **Set Up**
 3. Go to **Facebook Login** > **Settings**
-4. Under **Valid OAuth Redirect URIs**, add `https://localhost/`
+4. Under **Valid OAuth Redirect URIs**, add `https://localhost/` (or your custom `redirect_uri` if configured)
 5. Click **Save Changes**
+
+> **Tip:** If Facebook rejects `localhost` in the App Domains field, set a custom redirect URI with a TLD:
+> ```bash
+> meta-cli config set redirect_uri "https://myapp.local/"
+> ```
+> Then add `myapp.local` to your Facebook App Domains and `https://myapp.local/` to Valid OAuth Redirect URIs.
 
 ### 4. Get App ID and App Secret
 
@@ -171,6 +177,7 @@ Config file: `~/.meta-cli/config.json`
   "rag_dir": "./docs",
   "db_path": "",
   "verify_token": "",
+  "redirect_uri": "",
   "debounce_seconds": 3,
   "hooks_endpoint": "",
   "hooks_token": "",
@@ -181,6 +188,7 @@ Config file: `~/.meta-cli/config.json`
 
 | Field | Description |
 |-------|-------------|
+| `redirect_uri` | Custom OAuth redirect URI (default: `https://localhost/`) |
 | `debounce_seconds` | Debounce window for message batching (default: 3) |
 | `hooks_endpoint` | OpenClaw webhook endpoint URL |
 | `hooks_token` | OpenClaw webhook auth token |

@@ -17,7 +17,8 @@ meta-cli uses Facebook's OAuth 2.0 flow to obtain access tokens. Tokens are stor
 │    └── https://www.facebook.com/v25.0/dialog/oauth?...      │
 │                                                             │
 │ 3. User authenticates and grants permissions                │
-│    └── Facebook redirects to https://localhost/?code=ABC     │
+│    └── Facebook redirects to redirect_uri/?code=ABC          │
+│        (default: https://localhost/)                         │
 │                                                             │
 │ 4. User pastes the redirect URL back into the CLI           │
 │    └── CLI extracts the authorization code from URL          │
@@ -151,5 +152,5 @@ Each account gets separate keyring entries (`tokens:work`, `tokens:personal`) an
 - **No plaintext storage** - Tokens are never written to disk files; they're stored in the OS-level encrypted keyring
 - **App Secret protection** - The app secret is also stored in the keyring, used only for webhook HMAC signature validation
 - **HTTPS only** - All communication with the Meta Graph API uses HTTPS
-- **Redirect URI** - Uses `https://localhost/` as the redirect URI, which is a standard pattern for CLI OAuth flows
+- **Redirect URI** - Defaults to `https://localhost/` as the redirect URI, which is a standard pattern for CLI OAuth flows. Can be customized via `config set redirect_uri` for environments where `localhost` is not accepted by Facebook App settings
 - **Scope minimization** - Only requests the specific permissions needed for the CLI's functionality

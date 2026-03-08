@@ -32,6 +32,7 @@ type Config struct {
     DBPath          string             `json:"db_path"`
     VerifyToken     string             `json:"verify_token"`
     Accounts        map[string]Account `json:"accounts,omitempty"`
+    RedirectURI     string             `json:"redirect_uri"`
 
     // Auto-reply pipeline
     DebounceSeconds int    `json:"debounce_seconds"`
@@ -58,6 +59,7 @@ type Account struct {
 | `db_path` | string | `""` | Custom SQLite database path (empty = default) |
 | `verify_token` | string | `""` | Webhook verification token |
 | `accounts` | map | `{}` | Per-account configurations with App IDs |
+| `redirect_uri` | string | `""` | Custom OAuth redirect URI (default: `https://localhost/`) |
 | `debounce_seconds` | int | `3` | Seconds to wait before batching messages |
 | `hooks_endpoint` | string | `""` | OpenClaw `/hooks/agent` endpoint URL |
 | `hooks_token` | string | `""` | Bearer token for OpenClaw hooks auth |
@@ -75,6 +77,7 @@ type Account struct {
   "rag_dir": "./docs",
   "db_path": "",
   "verify_token": "",
+  "redirect_uri": "",
   "debounce_seconds": 3,
   "hooks_endpoint": "",
   "hooks_token": "",
