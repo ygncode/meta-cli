@@ -48,7 +48,7 @@ func authLoginCmd() *cobra.Command {
 				return fmt.Errorf("save app secret: %w", err)
 			}
 
-			loginURL := auth.LoginURL(appID, rctx.Config.GraphAPIVersion)
+			loginURL := auth.LoginURL(appID, rctx.Config.GraphAPIVersion, rctx.Config.RedirectURI)
 			fmt.Fprintf(os.Stderr, "Open this URL in your browser:\n\n  %s\n\n", loginURL)
 			fmt.Fprint(os.Stderr, "Paste the redirect URL here: ")
 
@@ -65,7 +65,7 @@ func authLoginCmd() *cobra.Command {
 
 			ctx := cmd.Context()
 
-			shortToken, err := auth.ExchangeCode(ctx, code, appID, appSecret, rctx.Config.GraphAPIVersion)
+			shortToken, err := auth.ExchangeCode(ctx, code, appID, appSecret, rctx.Config.GraphAPIVersion, rctx.Config.RedirectURI)
 			if err != nil {
 				return fmt.Errorf("exchange code: %w", err)
 			}

@@ -12,7 +12,7 @@ import (
 )
 
 func TestLoginURL(t *testing.T) {
-	url := auth.LoginURL("12345", "v21.0")
+	url := auth.LoginURL("12345", "v21.0", "")
 	if !strings.Contains(url, "facebook.com/v21.0/dialog/oauth") {
 		t.Errorf("expected OAuth dialog URL, got %s", url)
 	}
@@ -175,7 +175,7 @@ func TestExchangeCode(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := auth.ExchangeCode(ctx, "test_code", "app", "secret", "v21.0")
+	_, err := auth.ExchangeCode(ctx, "test_code", "app", "secret", "v21.0", "")
 	if err == nil {
 		t.Error("expected error with cancelled context")
 	}

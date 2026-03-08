@@ -21,10 +21,13 @@ var Scopes = []string{
 	"public_profile",
 }
 
-func LoginURL(appID, version string) string {
+func LoginURL(appID, version, redirectURI string) string {
+	if redirectURI == "" {
+		redirectURI = "https://localhost/"
+	}
 	params := url.Values{
 		"client_id":     {appID},
-		"redirect_uri":  {"https://localhost/"},
+		"redirect_uri":  {redirectURI},
 		"scope":         {strings.Join(Scopes, ",")},
 		"response_type": {"code"},
 	}
@@ -97,11 +100,14 @@ func fetchToken(ctx context.Context, params url.Values, version string) (string,
 	return result.AccessToken, nil
 }
 
-func ExchangeCode(ctx context.Context, code, appID, appSecret, version string) (string, error) {
+func ExchangeCode(ctx context.Context, code, appID, appSecret, version, redirectURI string) (string, error) {
+	if redirectURI == "" {
+		redirectURI = "https://localhost/"
+	}
 	params := url.Values{
 		"client_id":     {appID},
 		"client_secret": {appSecret},
-		"redirect_uri":  {"https://localhost/"},
+		"redirect_uri":  {redirectURI},
 		"code":          {code},
 	}
 	return fetchToken(ctx, params, version)

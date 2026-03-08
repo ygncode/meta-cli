@@ -10,6 +10,8 @@ type Config struct {
 	VerifyToken     string             `json:"verify_token,omitempty"`
 	Accounts        map[string]Account `json:"accounts,omitempty"`
 
+	RedirectURI string `json:"redirect_uri,omitempty"`
+
 	// Auto-reply pipeline fields
 	DebounceSeconds int    `json:"debounce_seconds,omitempty"`
 	HooksEndpoint   string `json:"hooks_endpoint,omitempty"`
