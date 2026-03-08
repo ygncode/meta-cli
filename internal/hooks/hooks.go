@@ -86,7 +86,7 @@ func (c *Client) CallAgent(ctx context.Context, prompt string, psid string) erro
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted {
 		return fmt.Errorf("hooks/agent returned status %d", resp.StatusCode)
 	}
 
