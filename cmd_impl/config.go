@@ -94,6 +94,7 @@ func configListCmd() *cobra.Command {
 				{"graph_api_version", cfg.GraphAPIVersion},
 				{"webhook_port", strconv.Itoa(cfg.WebhookPort)},
 				{"verify_token", cfg.VerifyToken},
+				{"redirect_uri", cfg.RedirectURI},
 				{"rag_dir", cfg.RAGDir},
 				{"db_path", cfg.DBPath},
 				{"debounce_seconds", strconv.Itoa(cfg.DebounceSeconds)},
@@ -145,8 +146,10 @@ func setConfigField(cfg *config.Config, key, value string) error {
 		cfg.AutoReply = b
 	case "prompt_template":
 		cfg.PromptTemplate = value
+	case "redirect_uri":
+		cfg.RedirectURI = value
 	default:
-		return fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, rag_dir, db_path, debounce_seconds, hooks_endpoint, hooks_token, auto_reply, prompt_template", key)
+		return fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, redirect_uri, rag_dir, db_path, debounce_seconds, hooks_endpoint, hooks_token, auto_reply, prompt_template", key)
 	}
 	return nil
 }
@@ -177,7 +180,9 @@ func getConfigField(cfg *config.Config, key string) (string, error) {
 		return strconv.FormatBool(cfg.AutoReply), nil
 	case "prompt_template":
 		return cfg.PromptTemplate, nil
+	case "redirect_uri":
+		return cfg.RedirectURI, nil
 	default:
-		return "", fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, rag_dir, db_path, debounce_seconds, hooks_endpoint, hooks_token, auto_reply, prompt_template", key)
+		return "", fmt.Errorf("unknown config key: %s\nvalid keys: default_account, default_page, graph_api_version, webhook_port, verify_token, redirect_uri, rag_dir, db_path, debounce_seconds, hooks_endpoint, hooks_token, auto_reply, prompt_template", key)
 	}
 }
