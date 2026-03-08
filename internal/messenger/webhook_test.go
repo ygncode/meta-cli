@@ -67,6 +67,87 @@ func TestWebhookVerify(t *testing.T) {
 	})
 }
 
+func TestWebhookInfoPage(t *testing.T) {
+	handler := &messenger.WebhookHandler{
+		VerifyToken: "my_verify_token",
+		AppSecret:   "secret",
+		PageID:      "page_123",
+	}
+
+	t.Run("plain GET returns status info", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/webhook", nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", w.Code)
+		}
+
+		ct := w.Header().Get("Content-Type")
+		if ct != "application/json" {
+			t.Errorf("expected Content-Type application/json, got %s", ct)
+		}
+
+		var body map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("failed to parse JSON: %v", err)
+		}
+
+		if body["status"] != "running" {
+			t.Errorf("expected status=running, got %v", body["status"])
+		}
+		if body["service"] != "meta-cli webhook" {
+			t.Errorf("expected service=meta-cli webhook, got %v", body["service"])
+		}
+		if body["page_id"] != "page_123" {
+			t.Errorf("expected page_id=page_123, got %v", body["page_id"])
+		}
+		if body["auto_reply"] != "disabled" {
+			t.Errorf("expected auto_reply=disabled, got %v", body["auto_reply"])
+		}
+	})
+
+	t.Run("plain GET with auto-reply enabled", func(t *testing.T) {
+		deb := &mockDebouncer{}
+		h := &messenger.WebhookHandler{
+			VerifyToken: "tok",
+			AppSecret:   "secret",
+			PageID:      "page_456",
+			Debouncer:   deb,
+		}
+
+		req := httptest.NewRequest(http.MethodGet, "/webhook", nil)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", w.Code)
+		}
+
+		var body map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("failed to parse JSON: %v", err)
+		}
+
+		if body["auto_reply"] != "enabled" {
+			t.Errorf("expected auto_reply=enabled, got %v", body["auto_reply"])
+		}
+		if body["page_id"] != "page_456" {
+			t.Errorf("expected page_id=page_456, got %v", body["page_id"])
+		}
+	})
+
+	t.Run("GET with random query params still shows info", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/webhook?foo=bar", nil)
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", w.Code)
+		}
+	})
+}
+
 func TestWebhookReceiveValidSignature(t *testing.T) {
 	store := openTestStore(t)
 

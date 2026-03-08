@@ -49,14 +49,43 @@ func (h *WebhookHandler) verify(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("hub.verify_token")
 	challenge := r.URL.Query().Get("hub.challenge")
 
-	if mode == "subscribe" && token == h.VerifyToken {
-		log.Printf("Webhook verified")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprint(w, challenge)
+	// Meta webhook verification flow
+	if mode == "subscribe" {
+		if token == h.VerifyToken {
+			log.Printf("Webhook verified")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, challenge)
+			return
+		}
+		log.Printf("Webhook verification failed: token mismatch")
+		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	log.Printf("Webhook verification failed: mode=%s token_match=%v", mode, token == h.VerifyToken)
+
+	// Plain GET — show basic status info
+	if mode == "" && token == "" {
+		h.info(w)
+		return
+	}
+
+	log.Printf("Webhook verification failed: mode=%s", mode)
 	w.WriteHeader(http.StatusForbidden)
+}
+
+func (h *WebhookHandler) info(w http.ResponseWriter) {
+	autoReply := "disabled"
+	if h.Debouncer != nil {
+		autoReply = "enabled"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":     "running",
+		"service":    "meta-cli webhook",
+		"page_id":    h.PageID,
+		"auto_reply": autoReply,
+	})
 }
 
 func (h *WebhookHandler) receive(w http.ResponseWriter, r *http.Request) {
