@@ -133,6 +133,20 @@ func (s *Service) CreateLink(ctx context.Context, pageID, message, link string) 
 	return &result, nil
 }
 
+func (s *Service) Update(ctx context.Context, postID, message string) error {
+	var result struct {
+		Success bool `json:"success"`
+	}
+	body := url.Values{"message": {message}}
+	if err := s.client.Post(ctx, postID, body, &result); err != nil {
+		return err
+	}
+	if !result.Success {
+		return fmt.Errorf("failed to update post %s", postID)
+	}
+	return nil
+}
+
 func (s *Service) Delete(ctx context.Context, postID string) error {
 	var result struct {
 		Success bool `json:"success"`

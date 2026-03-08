@@ -202,6 +202,7 @@ func IsPermissionDenied(err error) bool
 | Upload unpublished photo | POST (multipart) | `/{page_id}/photos` (published=false) |
 | Create album post | POST | `/{page_id}/feed` (with attached_media) |
 | Create link post | POST | `/{page_id}/feed` (with link) |
+| Update post message | POST | `/{post_id}` (with message) |
 | Delete post | DELETE | `/{post_id}` |
 
 ### Comments
@@ -210,6 +211,7 @@ func IsPermissionDenied(err error) bool
 |-----------|--------|----------|
 | List comments | GET | `/{post_id}/comments` |
 | Reply to comment | POST | `/{comment_id}/comments` |
+| Update comment message | POST | `/{comment_id}` (with message) |
 | Hide/unhide comment | POST | `/{comment_id}` (is_hidden=true/false) |
 | Delete comment | DELETE | `/{comment_id}` |
 

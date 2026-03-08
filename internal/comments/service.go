@@ -86,6 +86,20 @@ func (s *Service) SetHidden(ctx context.Context, commentID string, hidden bool) 
 	return nil
 }
 
+func (s *Service) Update(ctx context.Context, commentID, message string) error {
+	var result struct {
+		Success bool `json:"success"`
+	}
+	body := url.Values{"message": {message}}
+	if err := s.client.Post(ctx, commentID, body, &result); err != nil {
+		return err
+	}
+	if !result.Success {
+		return fmt.Errorf("failed to update comment %s", commentID)
+	}
+	return nil
+}
+
 func (s *Service) Delete(ctx context.Context, commentID string) error {
 	var result struct {
 		Success bool `json:"success"`

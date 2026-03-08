@@ -118,6 +118,54 @@ func TestCommentsSetHiddenFailed(t *testing.T) {
 	}
 }
 
+func TestCommentsUpdate(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		r.ParseForm()
+		if r.FormValue("message") != "Updated comment" {
+			t.Errorf("expected message=Updated comment, got %s", r.FormValue("message"))
+		}
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	})
+	defer srv.Close()
+
+	svc := comments.New(client)
+	if err := svc.Update(context.Background(), "c_001", "Updated comment"); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+}
+
+func TestCommentsUpdateFailed(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]bool{"success": false})
+	})
+	defer srv.Close()
+
+	svc := comments.New(client)
+	err := svc.Update(context.Background(), "c_001", "Updated comment")
+	if err == nil {
+		t.Error("expected error when update returns success=false")
+	}
+}
+
+func TestCommentsUpdateAPIError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "invalid comment", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	svc := comments.New(client)
+	err := svc.Update(context.Background(), "c_001", "Updated comment")
+	if err == nil {
+		t.Error("expected error on API error")
+	}
+}
+
 func TestCommentsDelete(t *testing.T) {
 	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {

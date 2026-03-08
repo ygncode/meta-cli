@@ -203,6 +203,58 @@ func TestPostsCreatePhotos(t *testing.T) {
 	}
 }
 
+func TestPostsUpdate(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		r.ParseForm()
+		if r.FormValue("message") != "Updated text" {
+			t.Errorf("expected message=Updated text, got %s", r.FormValue("message"))
+		}
+		// Verify the path contains the post ID
+		if !strings.Contains(r.URL.Path, "111_001") {
+			t.Errorf("expected path to contain 111_001, got %s", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	if err := svc.Update(context.Background(), "111_001", "Updated text"); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+}
+
+func TestPostsUpdateFailed(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]bool{"success": false})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	err := svc.Update(context.Background(), "111_001", "Updated text")
+	if err == nil {
+		t.Error("expected error when update returns success=false")
+	}
+}
+
+func TestPostsUpdateAPIError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "invalid post", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	err := svc.Update(context.Background(), "111_001", "Updated text")
+	if err == nil {
+		t.Error("expected error on API error")
+	}
+}
+
 func TestPostsDelete(t *testing.T) {
 	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {

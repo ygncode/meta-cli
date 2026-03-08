@@ -16,6 +16,7 @@ func init() {
 
 	postsCmd.AddCommand(postListCmd())
 	postsCmd.AddCommand(postCreateCmd())
+	postsCmd.AddCommand(postUpdateCmd())
 	postsCmd.AddCommand(postDeleteCmd())
 	rootCmd.AddCommand(postsCmd)
 }
@@ -87,6 +88,37 @@ func postCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&message, "message", "", "Post message text")
 	cmd.Flags().StringArrayVar(&photos, "photo", nil, "Path to photo file (repeatable for multiple images)")
 	cmd.Flags().StringVar(&link, "link", "", "URL to share")
+	return cmd
+}
+
+func postUpdateCmd() *cobra.Command {
+	var message string
+
+	cmd := &cobra.Command{
+		Use:   "update <post-id>",
+		Short: "Update a post's message",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			if message == "" {
+				return fmt.Errorf("--message is required")
+			}
+
+			svc := posts.New(rctx.Client)
+			if err := svc.Update(cmd.Context(), args[0], message); err != nil {
+				return err
+			}
+
+			rctx.Printer.OK(fmt.Sprintf("Updated post %s", args[0]))
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&message, "message", "m", "", "New message text")
 	return cmd
 }
 

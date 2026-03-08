@@ -82,11 +82,13 @@ meta-cli post create --message "Hello from meta-cli!"
 meta-cli post create --photo /path/to/image.jpg --message "Check this out!"
 meta-cli post create --photo img1.jpg --photo img2.jpg --message "Album post"
 meta-cli post list
+meta-cli post update POST_ID --message "Updated text"
 meta-cli post delete POST_ID
 
 # --- Comments ---
 meta-cli comment list POST_ID
 meta-cli comment reply COMMENT_ID --message "Thanks!"
+meta-cli comment update COMMENT_ID --message "Updated reply"
 meta-cli comment hide COMMENT_ID
 meta-cli comment unhide COMMENT_ID
 meta-cli comment delete COMMENT_ID
@@ -130,9 +132,11 @@ meta-cli rag search "how to reset password"
 | `pages set-default` | Set a default page for commands |
 | `post list` | List recent posts |
 | `post create` | Create a text, photo, or link post |
+| `post update` | Update a post's message |
 | `post delete` | Delete a post |
 | `comment list` | List comments on a post |
 | `comment reply` | Reply to a comment |
+| `comment update` | Update a comment's message |
 | `comment hide` | Hide a comment |
 | `comment unhide` | Unhide a comment |
 | `comment delete` | Delete a comment |

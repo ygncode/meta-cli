@@ -16,6 +16,7 @@ func init() {
 
 	commentsCmd.AddCommand(commentListCmd())
 	commentsCmd.AddCommand(commentReplyCmd())
+	commentsCmd.AddCommand(commentUpdateCmd())
 	commentsCmd.AddCommand(commentHideCmd())
 	commentsCmd.AddCommand(commentUnhideCmd())
 	commentsCmd.AddCommand(commentDeleteCmd())
@@ -78,6 +79,37 @@ func commentReplyCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVarP(&message, "message", "m", "", "Reply message")
+	return cmd
+}
+
+func commentUpdateCmd() *cobra.Command {
+	var message string
+
+	cmd := &cobra.Command{
+		Use:   "update <comment-id>",
+		Short: "Update a comment's message",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			if message == "" {
+				return fmt.Errorf("--message is required")
+			}
+
+			svc := comments.New(rctx.Client)
+			if err := svc.Update(cmd.Context(), args[0], message); err != nil {
+				return err
+			}
+
+			rctx.Printer.OK(fmt.Sprintf("Updated comment %s", args[0]))
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&message, "message", "m", "", "New message text")
 	return cmd
 }
 

@@ -14,10 +14,12 @@ meta-cli
 ├── post (alias: posts)
 │   ├── list           List recent posts
 │   ├── create         Create a text, photo, or link post
+│   ├── update         Update a post's message
 │   └── delete         Delete a post
 ├── comment (alias: comments)
 │   ├── list           List comments on a post
 │   ├── reply          Reply to a comment
+│   ├── update         Update a comment's message
 │   ├── hide           Hide a comment
 │   ├── unhide         Unhide a comment
 │   └── delete         Delete a comment
@@ -201,6 +203,29 @@ meta-cli post create --link https://example.com --message "Interesting link"
 
 ---
 
+### `post update`
+
+Update the message text of an existing post.
+
+```bash
+meta-cli post update POST_ID --message "Updated text"
+meta-cli post update POST_ID -m "Updated text"
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `post-id` | Yes | The post ID to update |
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `-m`, `--message` | string | Yes | New message text |
+
+**Note:** You can update the message of text, link, and photo posts. However, you cannot change the photo itself on a photo post — only the caption/message.
+
+**Requires:** Authentication + page
+
+---
+
 ### `post delete`
 
 Delete a post from the page.
@@ -260,6 +285,27 @@ meta-cli comment reply COMMENT_ID -m "Thanks!"
 | `-m`, `--message` | string | Yes | Reply text |
 
 **Output:** Created reply ID.
+
+**Requires:** Authentication + page
+
+---
+
+### `comment update`
+
+Update the message text of an existing comment.
+
+```bash
+meta-cli comment update COMMENT_ID --message "Updated comment text"
+meta-cli comment update COMMENT_ID -m "Updated comment text"
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `comment-id` | Yes | The comment ID to update |
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `-m`, `--message` | string | Yes | New message text |
 
 **Requires:** Authentication + page
 
@@ -575,9 +621,11 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `pages set-default` | - | - | - |
 | `post list` | Yes | Yes | Yes |
 | `post create` | Yes | Yes | Yes |
+| `post update` | Yes | Yes | Yes |
 | `post delete` | Yes | Yes | Yes |
 | `comment list` | Yes | Yes | Yes |
 | `comment reply` | Yes | Yes | Yes |
+| `comment update` | Yes | Yes | Yes |
 | `comment hide` | Yes | Yes | Yes |
 | `comment unhide` | Yes | Yes | Yes |
 | `comment delete` | Yes | Yes | Yes |
