@@ -17,6 +17,7 @@ func init() {
 	postsCmd.AddCommand(postListCmd())
 	postsCmd.AddCommand(postCreateCmd())
 	postsCmd.AddCommand(postUpdateCmd())
+	postsCmd.AddCommand(postEditCmd())
 	postsCmd.AddCommand(postDeleteCmd())
 	rootCmd.AddCommand(postsCmd)
 }
@@ -92,11 +93,19 @@ func postCreateCmd() *cobra.Command {
 }
 
 func postUpdateCmd() *cobra.Command {
+	return postModifyCmd("update", "Update a post's message")
+}
+
+func postEditCmd() *cobra.Command {
+	return postModifyCmd("edit", "Edit a post's message")
+}
+
+func postModifyCmd(use, short string) *cobra.Command {
 	var message string
 
 	cmd := &cobra.Command{
-		Use:   "update <post-id>",
-		Short: "Update a post's message",
+		Use:   use + " <post-id>",
+		Short: short,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rctx, err := requirePageClient(cmd)
