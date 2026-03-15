@@ -1,5 +1,7 @@
 package posts
 
+import "time"
+
 type Post struct {
 	ID           string `json:"id"`
 	Message      string `json:"message"`
@@ -13,4 +15,15 @@ type Post struct {
 type CreateResult struct {
 	ID     string `json:"id"`
 	PostID string `json:"post_id,omitempty"`
+}
+
+type ScheduleOpts struct {
+	PublishTime time.Time
+}
+
+type ScheduledPost struct {
+	ID                   string `json:"id"`
+	Message              string `json:"message"`
+	ScheduledPublishTime string `json:"scheduled_publish_time"`
+	CreatedTime          string `json:"created_time"`
 }

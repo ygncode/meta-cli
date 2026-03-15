@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/ygncode/meta-cli/internal/graph"
 )
@@ -70,20 +71,61 @@ func (s *Service) List(ctx context.Context, pageID string, limit int) ([]Post, e
 	return posts, nil
 }
 
-func (s *Service) CreateText(ctx context.Context, pageID, message string) (*CreateResult, error) {
+func validateScheduleTime(t time.Time) error {
+	now := time.Now()
+	if t.Before(now.Add(10 * time.Minute)) {
+		return fmt.Errorf("schedule time must be at least 10 minutes in the future")
+	}
+	if t.After(now.Add(75 * 24 * time.Hour)) {
+		return fmt.Errorf("schedule time must be within 75 days")
+	}
+	return nil
+}
+
+func applyScheduleOpts(body url.Values, opts *ScheduleOpts) error {
+	if opts == nil {
+		return nil
+	}
+	if err := validateScheduleTime(opts.PublishTime); err != nil {
+		return err
+	}
+	body.Set("published", "false")
+	body.Set("scheduled_publish_time", fmt.Sprintf("%d", opts.PublishTime.Unix()))
+	return nil
+}
+
+func applyScheduleOptsToFields(fields map[string]string, opts *ScheduleOpts) error {
+	if opts == nil {
+		return nil
+	}
+	if err := validateScheduleTime(opts.PublishTime); err != nil {
+		return err
+	}
+	fields["published"] = "false"
+	fields["scheduled_publish_time"] = fmt.Sprintf("%d", opts.PublishTime.Unix())
+	return nil
+}
+
+func (s *Service) CreateText(ctx context.Context, pageID, message string, opts *ScheduleOpts) (*CreateResult, error) {
 	var result CreateResult
 	body := url.Values{"message": {message}}
+	if err := applyScheduleOpts(body, opts); err != nil {
+		return nil, err
+	}
 	if err := s.client.Post(ctx, pageID+"/feed", body, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
-func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath string) (*CreateResult, error) {
+func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath string, opts *ScheduleOpts) (*CreateResult, error) {
 	var result CreateResult
 	fields := map[string]string{}
 	if message != "" {
 		fields["message"] = message
+	}
+	if err := applyScheduleOptsToFields(fields, opts); err != nil {
+		return nil, err
 	}
 	if err := s.client.PostMultipart(ctx, pageID+"/photos", fields, photoPath, &result); err != nil {
 		return nil, err
@@ -91,14 +133,14 @@ func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath st
 	return &result, nil
 }
 
-func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, photoPaths []string) (*CreateResult, error) {
+func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, photoPaths []string, opts *ScheduleOpts) (*CreateResult, error) {
 	// Step 1: upload each photo as unpublished
 	mediaIDs := make([]string, 0, len(photoPaths))
 	for _, p := range photoPaths {
 		var photoResult struct {
 			ID string `json:"id"`
 		}
-		fields := map[string]string{"published": "false"}
+		fields := map[string]string{"published": "false", "temporary": "true"}
 		if err := s.client.PostMultipart(ctx, pageID+"/photos", fields, p, &photoResult); err != nil {
 			return nil, fmt.Errorf("upload %s: %w", p, err)
 		}
@@ -113,6 +155,9 @@ func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, phot
 	for i, id := range mediaIDs {
 		body.Set(fmt.Sprintf("attached_media[%d]", i), fmt.Sprintf("{\"media_fbid\":\"%s\"}", id))
 	}
+	if err := applyScheduleOpts(body, opts); err != nil {
+		return nil, err
+	}
 
 	var result CreateResult
 	if err := s.client.Post(ctx, pageID+"/feed", body, &result); err != nil {
@@ -121,11 +166,14 @@ func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, phot
 	return &result, nil
 }
 
-func (s *Service) CreateLink(ctx context.Context, pageID, message, link string) (*CreateResult, error) {
+func (s *Service) CreateLink(ctx context.Context, pageID, message, link string, opts *ScheduleOpts) (*CreateResult, error) {
 	var result CreateResult
 	body := url.Values{"link": {link}}
 	if message != "" {
 		body.Set("message", message)
+	}
+	if err := applyScheduleOpts(body, opts); err != nil {
+		return nil, err
 	}
 	if err := s.client.Post(ctx, pageID+"/feed", body, &result); err != nil {
 		return nil, err
@@ -158,4 +206,20 @@ func (s *Service) Delete(ctx context.Context, postID string) error {
 		return fmt.Errorf("failed to delete post %s", postID)
 	}
 	return nil
+}
+
+func (s *Service) ListScheduled(ctx context.Context, pageID string, limit int) ([]ScheduledPost, error) {
+	var result struct {
+		Data []ScheduledPost `json:"data"`
+	}
+
+	params := url.Values{
+		"fields": {"id,message,scheduled_publish_time,created_time"},
+		"limit":  {fmt.Sprintf("%d", limit)},
+	}
+
+	if err := s.client.Get(ctx, pageID+"/scheduled_posts", params, &result); err != nil {
+		return nil, err
+	}
+	return result.Data, nil
 }

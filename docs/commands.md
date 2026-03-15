@@ -15,7 +15,9 @@ meta-cli
 │   ├── list           List recent posts
 │   ├── create         Create a text, photo, or link post
 │   ├── update         Update a post's message
-│   └── delete         Delete a post
+│   ├── edit           Edit a post's message
+│   ├── delete         Delete a post
+│   └── list-scheduled List scheduled (unpublished) posts
 ├── comment (alias: comments)
 │   ├── list           List comments on a post
 │   ├── reply          Reply to a comment
@@ -188,6 +190,10 @@ meta-cli post create --photo img1.jpg --photo img2.jpg --message "Album post"
 
 # Link post
 meta-cli post create --link https://example.com --message "Interesting link"
+
+# Scheduled post
+meta-cli post create --message "Coming soon!" --schedule "2026-03-20 14:00"
+meta-cli post create --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
 ```
 
 | Flag | Type | Required | Description |
@@ -195,6 +201,8 @@ meta-cli post create --link https://example.com --message "Interesting link"
 | `--message` | string | No* | Post text content |
 | `--photo` | string[] | No* | Path to image file (repeatable for albums) |
 | `--link` | string | No* | URL to share |
+| `--schedule` | string | No | Schedule for future publishing (format: `"YYYY-MM-DD HH:MM"`) |
+| `--tz` | string | No | Timezone for `--schedule` (e.g. `"Asia/Yangon"`), defaults to local |
 
 *At least one of `--message`, `--photo`, or `--link` is required.
 
@@ -244,6 +252,26 @@ meta-cli post delete POST_ID
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `post-id` | Yes | The post ID to delete |
+
+**Requires:** Authentication + page
+
+---
+
+### `post list-scheduled`
+
+List scheduled (unpublished) posts.
+
+```bash
+meta-cli post list-scheduled
+meta-cli post list-scheduled --limit 20
+meta-cli post list-scheduled --json
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `10` | Number of scheduled posts to fetch |
+
+**Output:** Table with post ID, message, scheduled publish time, and creation time.
 
 **Requires:** Authentication + page
 
@@ -740,7 +768,9 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `post list` | Yes | Yes | Yes |
 | `post create` | Yes | Yes | Yes |
 | `post update` | Yes | Yes | Yes |
+| `post edit` | Yes | Yes | Yes |
 | `post delete` | Yes | Yes | Yes |
+| `post list-scheduled` | Yes | Yes | Yes |
 | `comment list` | Yes | Yes | Yes |
 | `comment reply` | Yes | Yes | Yes |
 | `comment update` | Yes | Yes | Yes |

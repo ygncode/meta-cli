@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ygncode/meta-cli/internal/graph"
 	"github.com/ygncode/meta-cli/internal/posts"
@@ -79,7 +80,7 @@ func TestPostsCreateText(t *testing.T) {
 	defer srv.Close()
 
 	svc := posts.New(client)
-	result, err := svc.CreateText(context.Background(), "111", "My post")
+	result, err := svc.CreateText(context.Background(), "111", "My post", nil)
 	if err != nil {
 		t.Fatalf("CreateText: %v", err)
 	}
@@ -99,7 +100,7 @@ func TestPostsCreateLink(t *testing.T) {
 	defer srv.Close()
 
 	svc := posts.New(client)
-	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com")
+	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com", nil)
 	if err != nil {
 		t.Fatalf("CreateLink: %v", err)
 	}
@@ -115,7 +116,7 @@ func TestPostsCreateLinkNoMessage(t *testing.T) {
 	defer srv.Close()
 
 	svc := posts.New(client)
-	result, err := svc.CreateLink(context.Background(), "111", "", "https://example.com")
+	result, err := svc.CreateLink(context.Background(), "111", "", "https://example.com", nil)
 	if err != nil {
 		t.Fatalf("CreateLink: %v", err)
 	}
@@ -142,7 +143,7 @@ func TestPostsCreatePhoto(t *testing.T) {
 	os.WriteFile(tmpFile, []byte("fake jpg"), 0o644)
 
 	svc := posts.New(client)
-	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile)
+	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile, nil)
 	if err != nil {
 		t.Fatalf("CreatePhoto: %v", err)
 	}
@@ -164,6 +165,9 @@ func TestPostsCreatePhotos(t *testing.T) {
 			r.ParseMultipartForm(1 << 20)
 			if r.FormValue("published") != "false" {
 				t.Errorf("expected published=false, got %s", r.FormValue("published"))
+			}
+			if r.FormValue("temporary") != "true" {
+				t.Errorf("expected temporary=true, got %s", r.FormValue("temporary"))
 			}
 			json.NewEncoder(w).Encode(map[string]string{"id": fmt.Sprintf("media_%d", callCount)})
 		} else {
@@ -190,7 +194,7 @@ func TestPostsCreatePhotos(t *testing.T) {
 	}
 
 	svc := posts.New(client)
-	result, err := svc.CreatePhotos(context.Background(), "111", "album", files)
+	result, err := svc.CreatePhotos(context.Background(), "111", "album", files, nil)
 	if err != nil {
 		t.Fatalf("CreatePhotos: %v", err)
 	}
@@ -294,6 +298,207 @@ func TestPostsListError(t *testing.T) {
 
 	svc := posts.New(client)
 	_, err := svc.List(context.Background(), "111", 10)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestPostsCreateTextScheduled(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		if r.FormValue("published") != "false" {
+			t.Errorf("expected published=false, got %s", r.FormValue("published"))
+		}
+		if r.FormValue("scheduled_publish_time") == "" {
+			t.Error("expected scheduled_publish_time to be set")
+		}
+		if r.FormValue("message") != "Scheduled post" {
+			t.Errorf("expected message=Scheduled post, got %s", r.FormValue("message"))
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "111_sched"})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
+	result, err := svc.CreateText(context.Background(), "111", "Scheduled post", opts)
+	if err != nil {
+		t.Fatalf("CreateText scheduled: %v", err)
+	}
+	if result.ID != "111_sched" {
+		t.Errorf("expected 111_sched, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateLinkScheduled(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		if r.FormValue("published") != "false" {
+			t.Errorf("expected published=false, got %s", r.FormValue("published"))
+		}
+		if r.FormValue("scheduled_publish_time") == "" {
+			t.Error("expected scheduled_publish_time to be set")
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "111_link_sched"})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
+	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com", opts)
+	if err != nil {
+		t.Fatalf("CreateLink scheduled: %v", err)
+	}
+	if result.ID != "111_link_sched" {
+		t.Errorf("expected 111_link_sched, got %s", result.ID)
+	}
+}
+
+func TestPostsCreatePhotoScheduled(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseMultipartForm(1 << 20)
+		if r.FormValue("published") != "false" {
+			t.Errorf("expected published=false, got %s", r.FormValue("published"))
+		}
+		if r.FormValue("scheduled_publish_time") == "" {
+			t.Error("expected scheduled_publish_time to be set")
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "photo_sched"})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "test.jpg")
+	os.WriteFile(tmpFile, []byte("fake jpg"), 0o644)
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
+	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile, opts)
+	if err != nil {
+		t.Fatalf("CreatePhoto scheduled: %v", err)
+	}
+	if result.ID != "photo_sched" {
+		t.Errorf("expected photo_sched, got %s", result.ID)
+	}
+}
+
+func TestPostsCreatePhotosScheduled(t *testing.T) {
+	callCount := 0
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		ct := r.Header.Get("Content-Type")
+		if strings.Contains(ct, "multipart/form-data") {
+			json.NewEncoder(w).Encode(map[string]string{"id": fmt.Sprintf("media_%d", callCount)})
+		} else {
+			r.ParseForm()
+			if r.FormValue("published") != "false" {
+				t.Errorf("expected published=false on feed post, got %s", r.FormValue("published"))
+			}
+			if r.FormValue("scheduled_publish_time") == "" {
+				t.Error("expected scheduled_publish_time on feed post")
+			}
+			json.NewEncoder(w).Encode(map[string]string{"id": "111_album_sched"})
+		}
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	files := []string{
+		filepath.Join(tmpDir, "a.jpg"),
+		filepath.Join(tmpDir, "b.jpg"),
+	}
+	for _, f := range files {
+		os.WriteFile(f, []byte("fake jpg"), 0o644)
+	}
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
+	result, err := svc.CreatePhotos(context.Background(), "111", "album", files, opts)
+	if err != nil {
+		t.Fatalf("CreatePhotos scheduled: %v", err)
+	}
+	if result.ID != "111_album_sched" {
+		t.Errorf("expected 111_album_sched, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateScheduledTooSoon(t *testing.T) {
+	_, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Error("should not reach API")
+	})
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(5 * time.Minute)}
+	_, err := svc.CreateText(context.Background(), "111", "too soon", opts)
+	if err == nil {
+		t.Error("expected error for schedule time too soon")
+	}
+	if !strings.Contains(err.Error(), "at least 10 minutes") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestPostsCreateScheduledTooFar(t *testing.T) {
+	_, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		t.Error("should not reach API")
+	})
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(76 * 24 * time.Hour)}
+	_, err := svc.CreateText(context.Background(), "111", "too far", opts)
+	if err == nil {
+		t.Error("expected error for schedule time too far")
+	}
+	if !strings.Contains(err.Error(), "within 75 days") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestPostsListScheduled(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.URL.Path, "scheduled_posts") {
+			t.Errorf("expected path to contain scheduled_posts, got %s", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{
+					"id":                      "111_sched_001",
+					"message":                 "Future post",
+					"scheduled_publish_time":  "2026-04-01T09:00:00+0000",
+					"created_time":            "2026-03-15T10:00:00+0000",
+				},
+			},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	list, err := svc.ListScheduled(context.Background(), "111", 10)
+	if err != nil {
+		t.Fatalf("ListScheduled: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 scheduled post, got %d", len(list))
+	}
+	if list[0].ID != "111_sched_001" {
+		t.Errorf("expected 111_sched_001, got %s", list[0].ID)
+	}
+	if list[0].Message != "Future post" {
+		t.Errorf("expected Future post, got %s", list[0].Message)
+	}
+}
+
+func TestPostsListScheduledError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "bad", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	_, err := svc.ListScheduled(context.Background(), "111", 10)
 	if err == nil {
 		t.Error("expected error")
 	}

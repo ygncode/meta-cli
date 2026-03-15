@@ -2,6 +2,7 @@ package cmd_impl
 
 import (
 	"testing"
+	"time"
 )
 
 func TestPostModifyCmd(t *testing.T) {
@@ -53,4 +54,71 @@ func TestPostUpdateAndEditRegistered(t *testing.T) {
 			t.Errorf("expected %q subcommand under post", name)
 		}
 	}
+}
+
+func TestPostListScheduledRegistered(t *testing.T) {
+	postCmd, _, err := rootCmd.Find([]string{"post"})
+	if err != nil {
+		t.Fatalf("post command not found: %v", err)
+	}
+
+	found := false
+	for _, sub := range postCmd.Commands() {
+		if sub.Name() == "list-scheduled" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected list-scheduled subcommand under post")
+	}
+}
+
+func TestPostCreateHasScheduleFlags(t *testing.T) {
+	cmd := postCreateCmd()
+
+	for _, flag := range []string{"schedule", "tz"} {
+		if cmd.Flags().Lookup(flag) == nil {
+			t.Errorf("expected --%s flag on create command", flag)
+		}
+	}
+}
+
+func TestParseScheduleTime(t *testing.T) {
+	t.Run("valid with timezone", func(t *testing.T) {
+		result, err := parseScheduleTime("2026-03-20 14:00", "Asia/Yangon")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		loc, _ := time.LoadLocation("Asia/Yangon")
+		expected := time.Date(2026, 3, 20, 14, 0, 0, 0, loc)
+		if !result.Equal(expected) {
+			t.Errorf("expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("valid with local timezone", func(t *testing.T) {
+		result, err := parseScheduleTime("2026-03-20 14:00", "")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		expected := time.Date(2026, 3, 20, 14, 0, 0, 0, time.Local)
+		if !result.Equal(expected) {
+			t.Errorf("expected %v, got %v", expected, result)
+		}
+	})
+
+	t.Run("invalid timezone", func(t *testing.T) {
+		_, err := parseScheduleTime("2026-03-20 14:00", "Invalid/Zone")
+		if err == nil {
+			t.Error("expected error for invalid timezone")
+		}
+	})
+
+	t.Run("invalid datetime format", func(t *testing.T) {
+		_, err := parseScheduleTime("not-a-date", "")
+		if err == nil {
+			t.Error("expected error for invalid datetime")
+		}
+	})
 }
