@@ -52,6 +52,7 @@ func postListCmd() *cobra.Command {
 
 func postCreateCmd() *cobra.Command {
 	var message, link, schedule, tz string
+	var video, title, thumbnail string
 	var photos []string
 
 	cmd := &cobra.Command{
@@ -61,6 +62,17 @@ func postCreateCmd() *cobra.Command {
 			rctx, err := requirePageClient(cmd)
 			if err != nil {
 				return err
+			}
+
+			// Validate video-specific flags
+			if video != "" && (len(photos) > 0 || link != "") {
+				return fmt.Errorf("--video cannot be combined with --photo or --link")
+			}
+			if title != "" && video == "" {
+				return fmt.Errorf("--title requires --video")
+			}
+			if thumbnail != "" && video == "" {
+				return fmt.Errorf("--thumbnail requires --video")
 			}
 
 			var schedOpts *posts.ScheduleOpts
@@ -77,6 +89,13 @@ func postCreateCmd() *cobra.Command {
 
 			var result *posts.CreateResult
 			switch {
+			case video != "":
+				result, err = svc.CreateVideo(ctx, rctx.PageID, posts.VideoOpts{
+					FilePath:  video,
+					Title:     title,
+					Message:   message,
+					Thumbnail: thumbnail,
+				}, schedOpts)
 			case len(photos) > 1:
 				result, err = svc.CreatePhotos(ctx, rctx.PageID, message, photos, schedOpts)
 			case len(photos) == 1:
@@ -86,7 +105,7 @@ func postCreateCmd() *cobra.Command {
 			case message != "":
 				result, err = svc.CreateText(ctx, rctx.PageID, message, schedOpts)
 			default:
-				return fmt.Errorf("provide --message, --photo, or --link")
+				return fmt.Errorf("provide --message, --photo, --video, or --link")
 			}
 
 			if err != nil {
@@ -100,6 +119,9 @@ func postCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&message, "message", "", "Post message text")
 	cmd.Flags().StringArrayVar(&photos, "photo", nil, "Path to photo file (repeatable for multiple images)")
 	cmd.Flags().StringVar(&link, "link", "", "URL to share")
+	cmd.Flags().StringVar(&video, "video", "", "Path to video file")
+	cmd.Flags().StringVar(&title, "title", "", "Video title (requires --video)")
+	cmd.Flags().StringVar(&thumbnail, "thumbnail", "", "Path to thumbnail image (requires --video)")
 	cmd.Flags().StringVar(&schedule, "schedule", "", "Schedule post for future publishing (e.g. \"2026-03-20 14:00\")")
 	cmd.Flags().StringVar(&tz, "tz", "", "Timezone for --schedule (e.g. \"Asia/Yangon\"), defaults to local")
 	return cmd

@@ -454,6 +454,162 @@ func TestPostsCreateScheduledTooFar(t *testing.T) {
 	}
 }
 
+func TestPostsCreateVideo(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		if !strings.Contains(r.URL.Path, "/videos") {
+			t.Errorf("expected path to contain /videos, got %s", r.URL.Path)
+		}
+		ct := r.Header.Get("Content-Type")
+		if !strings.Contains(ct, "multipart/form-data") {
+			t.Errorf("expected multipart, got %s", ct)
+		}
+		r.ParseMultipartForm(1 << 20)
+		if r.FormValue("description") != "Watch this!" {
+			t.Errorf("expected description=Watch this!, got %s", r.FormValue("description"))
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "video_1"})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake video"), 0o644)
+
+	svc := posts.New(client)
+	result, err := svc.CreateVideo(context.Background(), "111", posts.VideoOpts{
+		FilePath: tmpFile,
+		Message:  "Watch this!",
+	}, nil)
+	if err != nil {
+		t.Fatalf("CreateVideo: %v", err)
+	}
+	if result.ID != "video_1" {
+		t.Errorf("expected video_1, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateVideoWithTitle(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseMultipartForm(1 << 20)
+		if r.FormValue("title") != "My Video" {
+			t.Errorf("expected title=My Video, got %s", r.FormValue("title"))
+		}
+		if r.FormValue("description") != "Description" {
+			t.Errorf("expected description=Description, got %s", r.FormValue("description"))
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "video_2"})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake video"), 0o644)
+
+	svc := posts.New(client)
+	result, err := svc.CreateVideo(context.Background(), "111", posts.VideoOpts{
+		FilePath: tmpFile,
+		Title:    "My Video",
+		Message:  "Description",
+	}, nil)
+	if err != nil {
+		t.Fatalf("CreateVideo: %v", err)
+	}
+	if result.ID != "video_2" {
+		t.Errorf("expected video_2, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateVideoWithThumbnail(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseMultipartForm(1 << 20)
+		if _, _, err := r.FormFile("source"); err != nil {
+			t.Errorf("expected source file: %v", err)
+		}
+		if _, _, err := r.FormFile("thumb"); err != nil {
+			t.Errorf("expected thumb file: %v", err)
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "video_3"})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	videoFile := filepath.Join(tmpDir, "clip.mp4")
+	thumbFile := filepath.Join(tmpDir, "thumb.jpg")
+	os.WriteFile(videoFile, []byte("fake video"), 0o644)
+	os.WriteFile(thumbFile, []byte("fake thumb"), 0o644)
+
+	svc := posts.New(client)
+	result, err := svc.CreateVideo(context.Background(), "111", posts.VideoOpts{
+		FilePath:  videoFile,
+		Title:     "My Video",
+		Message:   "Description",
+		Thumbnail: thumbFile,
+	}, nil)
+	if err != nil {
+		t.Fatalf("CreateVideo: %v", err)
+	}
+	if result.ID != "video_3" {
+		t.Errorf("expected video_3, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateVideoScheduled(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		r.ParseMultipartForm(1 << 20)
+		if r.FormValue("published") != "false" {
+			t.Errorf("expected published=false, got %s", r.FormValue("published"))
+		}
+		if r.FormValue("scheduled_publish_time") == "" {
+			t.Error("expected scheduled_publish_time to be set")
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "video_sched"})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake video"), 0o644)
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
+	result, err := svc.CreateVideo(context.Background(), "111", posts.VideoOpts{
+		FilePath: tmpFile,
+		Message:  "Scheduled video",
+	}, opts)
+	if err != nil {
+		t.Fatalf("CreateVideo scheduled: %v", err)
+	}
+	if result.ID != "video_sched" {
+		t.Errorf("expected video_sched, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateVideoAPIError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "invalid video", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake video"), 0o644)
+
+	svc := posts.New(client)
+	_, err := svc.CreateVideo(context.Background(), "111", posts.VideoOpts{
+		FilePath: tmpFile,
+		Message:  "test",
+	}, nil)
+	if err == nil {
+		t.Error("expected error on API error")
+	}
+}
+
 func TestPostsListScheduled(t *testing.T) {
 	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.URL.Path, "scheduled_posts") {

@@ -21,6 +21,13 @@ type ScheduleOpts struct {
 	PublishTime time.Time
 }
 
+type VideoOpts struct {
+	FilePath  string
+	Title     string
+	Message   string
+	Thumbnail string
+}
+
 type ScheduledPost struct {
 	ID                   string `json:"id"`
 	Message              string `json:"message"`

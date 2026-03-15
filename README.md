@@ -81,11 +81,16 @@ meta-cli pages set-default YOUR_PAGE_ID
 meta-cli post create --message "Hello from meta-cli!"
 meta-cli post create --photo /path/to/image.jpg --message "Check this out!"
 meta-cli post create --photo img1.jpg --photo img2.jpg --message "Album post"
+meta-cli post create --video /path/to/video.mp4 --message "Watch this!"
+meta-cli post create --video clip.mp4 --title "My Video" --message "Description"
+meta-cli post create --video clip.mp4 --title "My Video" --thumbnail thumb.jpg --message "Description"
 meta-cli post list
 meta-cli post update POST_ID --message "Updated text"
 meta-cli post delete POST_ID
 meta-cli post create --message "Coming soon!" --schedule "2026-03-20 14:00"
 meta-cli post create --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
+meta-cli post create --video clip.mp4 --message "Coming soon!" --schedule "2026-03-20 14:00"
+meta-cli post create --video clip.mp4 --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
 meta-cli post list-scheduled
 
 # --- Comments ---
@@ -149,7 +154,7 @@ meta-cli rag search "how to reset password"
 | `pages list` | List pages you manage |
 | `pages set-default` | Set a default page for commands |
 | `post list` | List recent posts |
-| `post create` | Create a text, photo, or link post |
+| `post create` | Create a text, photo, video, or link post |
 | `post update` | Update a post's message |
 | `post edit` | Edit a post's message |
 | `post delete` | Delete a post |

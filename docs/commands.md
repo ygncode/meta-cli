@@ -13,7 +13,7 @@ meta-cli
 │   └── set-default    Set a default page for commands
 ├── post (alias: posts)
 │   ├── list           List recent posts
-│   ├── create         Create a text, photo, or link post
+│   ├── create         Create a text, photo, video, or link post
 │   ├── update         Update a post's message
 │   ├── edit           Edit a post's message
 │   ├── delete         Delete a post
@@ -179,7 +179,7 @@ meta-cli post list --json
 
 ### `post create`
 
-Create a new post on the page. Supports text, photo, multi-photo album, and link posts.
+Create a new post on the page. Supports text, photo, multi-photo album, video, and link posts.
 
 ```bash
 # Text post
@@ -191,29 +191,40 @@ meta-cli post create --photo /path/to/image.jpg --message "Check this out!"
 # Multi-photo album post
 meta-cli post create --photo img1.jpg --photo img2.jpg --message "Album post"
 
+# Video post
+meta-cli post create --video /path/to/video.mp4 --message "Watch this!"
+meta-cli post create --video clip.mp4 --title "My Video" --message "Description"
+meta-cli post create --video clip.mp4 --title "My Video" --thumbnail thumb.jpg --message "Description"
+
 # Link post
 meta-cli post create --link https://example.com --message "Interesting link"
 
 # Scheduled post
 meta-cli post create --message "Coming soon!" --schedule "2026-03-20 14:00"
 meta-cli post create --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
+meta-cli post create --video clip.mp4 --message "Coming soon!" --schedule "2026-03-20 14:00"
+meta-cli post create --video clip.mp4 --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
 ```
 
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--message` | string | No* | Post text content |
 | `--photo` | string[] | No* | Path to image file (repeatable for albums) |
+| `--video` | string | No* | Path to video file |
+| `--title` | string | No | Video title (requires `--video`) |
+| `--thumbnail` | string | No | Path to thumbnail image (requires `--video`) |
 | `--link` | string | No* | URL to share |
 | `--schedule` | string | No | Schedule for future publishing (format: `"YYYY-MM-DD HH:MM"`) |
 | `--tz` | string | No | Timezone for `--schedule` (e.g. `"Asia/Yangon"`), defaults to local |
 
-*At least one of `--message`, `--photo`, or `--link` is required.
+*At least one of `--message`, `--photo`, `--video`, or `--link` is required.
 
 **Post type resolution:**
-1. If multiple `--photo` flags → Album post (photos uploaded as unpublished, then attached)
-2. If single `--photo` → Photo post (multipart upload)
-3. If `--link` (no photos) → Link post
-4. If only `--message` → Text post
+1. If `--video` → Video post (multipart upload to `/{page-id}/videos`)
+2. If multiple `--photo` flags → Album post (photos uploaded as unpublished, then attached)
+3. If single `--photo` → Photo post (multipart upload)
+4. If `--link` (no photos/video) → Link post
+5. If only `--message` → Text post
 
 **Output:** Created post details (ID, permalink).
 

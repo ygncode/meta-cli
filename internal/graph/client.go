@@ -73,6 +73,10 @@ func (c *Client) Post(ctx context.Context, path string, body url.Values, out any
 }
 
 func (c *Client) PostMultipart(ctx context.Context, path string, fields map[string]string, filePath string, out any) error {
+	return c.PostMultipartFiles(ctx, path, fields, map[string]string{"source": filePath}, out)
+}
+
+func (c *Client) PostMultipartFiles(ctx context.Context, path string, fields map[string]string, files map[string]string, out any) error {
 	u := c.baseURL + "/" + path + "?access_token=" + url.QueryEscape(c.token)
 
 	pr, pw := io.Pipe()
@@ -89,21 +93,25 @@ func (c *Client) PostMultipart(ctx context.Context, path string, fields map[stri
 			}
 		}
 
-		f, err := os.Open(filePath)
-		if err != nil {
-			pw.CloseWithError(err)
-			return
-		}
-		defer f.Close()
+		for fieldName, filePath := range files {
+			f, err := os.Open(filePath)
+			if err != nil {
+				pw.CloseWithError(err)
+				return
+			}
 
-		part, err := writer.CreateFormFile("source", filepath.Base(filePath))
-		if err != nil {
-			pw.CloseWithError(err)
-			return
-		}
-		if _, err := io.Copy(part, f); err != nil {
-			pw.CloseWithError(err)
-			return
+			part, err := writer.CreateFormFile(fieldName, filepath.Base(filePath))
+			if err != nil {
+				f.Close()
+				pw.CloseWithError(err)
+				return
+			}
+			if _, err := io.Copy(part, f); err != nil {
+				f.Close()
+				pw.CloseWithError(err)
+				return
+			}
+			f.Close()
 		}
 	}()
 

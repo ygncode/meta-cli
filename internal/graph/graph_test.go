@@ -296,6 +296,68 @@ func TestClientPostMultipartMissingFile(t *testing.T) {
 	}
 }
 
+func TestClientPostMultipartFiles(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		ct := r.Header.Get("Content-Type")
+		if !strings.Contains(ct, "multipart/form-data") {
+			t.Errorf("expected multipart content type, got %s", ct)
+		}
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			t.Fatalf("ParseMultipartForm: %v", err)
+		}
+		if r.FormValue("description") != "my video" {
+			t.Errorf("expected description=my video, got %s", r.FormValue("description"))
+		}
+		if _, _, err := r.FormFile("source"); err != nil {
+			t.Errorf("expected source file: %v", err)
+		}
+		if _, _, err := r.FormFile("thumb"); err != nil {
+			t.Errorf("expected thumb file: %v", err)
+		}
+		json.NewEncoder(w).Encode(map[string]string{"id": "video_123"})
+	}))
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	videoFile := filepath.Join(tmpDir, "clip.mp4")
+	thumbFile := filepath.Join(tmpDir, "thumb.jpg")
+	os.WriteFile(videoFile, []byte("fake video data"), 0o644)
+	os.WriteFile(thumbFile, []byte("fake thumb data"), 0o644)
+
+	c := newTestClient(t, srv)
+	var out map[string]string
+	err := c.PostMultipartFiles(context.Background(), "page/videos",
+		map[string]string{"description": "my video"},
+		map[string]string{"source": videoFile, "thumb": thumbFile},
+		&out)
+	if err != nil {
+		t.Fatalf("PostMultipartFiles: %v", err)
+	}
+	if out["id"] != "video_123" {
+		t.Errorf("expected video_123, got %s", out["id"])
+	}
+}
+
+func TestClientPostMultipartFilesMissingFile(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(map[string]string{"id": "x"})
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv)
+	var out map[string]string
+	err := c.PostMultipartFiles(context.Background(), "page/videos",
+		nil,
+		map[string]string{"source": "/no/such/file.mp4"},
+		&out)
+	if err == nil {
+		t.Error("expected error for missing file")
+	}
+}
+
 func TestClientGetCancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

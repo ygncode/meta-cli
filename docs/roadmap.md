@@ -7,10 +7,8 @@ Graph API capabilities not yet covered by meta-cli, prioritized by impact.
 ### ~~Page & Post Insights~~ ✅ Completed
 Implemented as `insight page` and `insight post` commands with `--metric` and `--period` flags.
 
-### Video Upload
-Video is Facebook's dominant content type. The CLI supports photos but not video.
-- `POST /{page-id}/videos` with source, title, description, thumbnail
-- Supports `scheduled_publish_time` for scheduled video posts
+### ~~Video Upload~~ ✅ Completed
+Implemented as `--video`, `--title`, and `--thumbnail` flags on `post create`. Supports scheduling with `--schedule` and `--tz`.
 
 ### Reels Publishing
 Facebook's fastest-growing format. Limit: 30 per 24h.

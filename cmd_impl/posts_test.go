@@ -84,6 +84,16 @@ func TestPostCreateHasScheduleFlags(t *testing.T) {
 	}
 }
 
+func TestPostCreateHasVideoFlags(t *testing.T) {
+	cmd := postCreateCmd()
+
+	for _, flag := range []string{"video", "title", "thumbnail"} {
+		if cmd.Flags().Lookup(flag) == nil {
+			t.Errorf("expected --%s flag on create command", flag)
+		}
+	}
+}
+
 func TestParseScheduleTime(t *testing.T) {
 	t.Run("valid with timezone", func(t *testing.T) {
 		result, err := parseScheduleTime("2026-03-20 14:00", "Asia/Yangon")

@@ -166,6 +166,28 @@ func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, phot
 	return &result, nil
 }
 
+func (s *Service) CreateVideo(ctx context.Context, pageID string, vopts VideoOpts, schedOpts *ScheduleOpts) (*CreateResult, error) {
+	var result CreateResult
+	fields := map[string]string{}
+	if vopts.Message != "" {
+		fields["description"] = vopts.Message
+	}
+	if vopts.Title != "" {
+		fields["title"] = vopts.Title
+	}
+	if err := applyScheduleOptsToFields(fields, schedOpts); err != nil {
+		return nil, err
+	}
+	files := map[string]string{"source": vopts.FilePath}
+	if vopts.Thumbnail != "" {
+		files["thumb"] = vopts.Thumbnail
+	}
+	if err := s.client.PostMultipartFiles(ctx, pageID+"/videos", fields, files, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (s *Service) CreateLink(ctx context.Context, pageID, message, link string, opts *ScheduleOpts) (*CreateResult, error) {
 	var result CreateResult
 	body := url.Values{"link": {link}}
