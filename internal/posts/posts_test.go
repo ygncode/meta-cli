@@ -610,6 +610,298 @@ func TestPostsCreateVideoAPIError(t *testing.T) {
 	}
 }
 
+func TestPostsCreateReel(t *testing.T) {
+	callCount := 0
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		switch callCount {
+		case 1:
+			// Step 1: init
+			r.ParseForm()
+			if r.FormValue("upload_phase") != "start" {
+				t.Errorf("expected upload_phase=start, got %s", r.FormValue("upload_phase"))
+			}
+			if !strings.Contains(r.URL.Path, "/video_reels") {
+				t.Errorf("expected path to contain /video_reels, got %s", r.URL.Path)
+			}
+			// Return upload_url pointing to same test server
+			json.NewEncoder(w).Encode(map[string]string{
+				"video_id":   "vid_123",
+				"upload_url": r.URL.Query().Get("_srv") + "/upload/video",
+			})
+		case 2:
+			// Step 2: binary upload
+			if r.Header.Get("Authorization") != "OAuth test_token" {
+				t.Errorf("expected OAuth header, got %s", r.Header.Get("Authorization"))
+			}
+			if r.Header.Get("Content-Type") != "application/octet-stream" {
+				t.Errorf("expected octet-stream, got %s", r.Header.Get("Content-Type"))
+			}
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		case 3:
+			// Step 3: finish
+			r.ParseForm()
+			if r.FormValue("upload_phase") != "finish" {
+				t.Errorf("expected upload_phase=finish, got %s", r.FormValue("upload_phase"))
+			}
+			if r.FormValue("video_id") != "vid_123" {
+				t.Errorf("expected video_id=vid_123, got %s", r.FormValue("video_id"))
+			}
+			if r.FormValue("description") != "Check this out!" {
+				t.Errorf("expected description=Check this out!, got %s", r.FormValue("description"))
+			}
+			if r.FormValue("published") != "true" {
+				t.Errorf("expected published=true, got %s", r.FormValue("published"))
+			}
+			json.NewEncoder(w).Encode(map[string]string{"id": "reel_001", "post_id": "111_reel_001"})
+		}
+	})
+	defer srv.Close()
+
+	// Patch: make init return upload_url pointing to test server
+	// We'll use a custom handler that injects the srv.URL
+	srv2, client2 := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {})
+	_ = srv2
+	_ = client2
+	// Actually, let's use a different approach: the test server itself serves all 3 steps
+	// The init step needs to return an upload_url that points back to the test server.
+	// But we don't know srv.URL inside the handler at definition time.
+	// Solution: close this server and create a new one where we can reference the URL.
+	srv.Close()
+
+	var srvURL string
+	callCount = 0
+	srv3 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		switch {
+		case callCount == 1 && strings.Contains(r.URL.Path, "/video_reels"):
+			// Step 1: init
+			r.ParseForm()
+			if r.FormValue("upload_phase") != "start" {
+				t.Errorf("expected upload_phase=start, got %s", r.FormValue("upload_phase"))
+			}
+			json.NewEncoder(w).Encode(map[string]string{
+				"video_id":   "vid_123",
+				"upload_url": srvURL + "/upload/video",
+			})
+		case callCount == 2 && strings.Contains(r.URL.Path, "/upload/video"):
+			// Step 2: binary upload
+			if r.Header.Get("Authorization") != "OAuth test_token" {
+				t.Errorf("expected OAuth header, got %s", r.Header.Get("Authorization"))
+			}
+			if r.Header.Get("Content-Type") != "application/octet-stream" {
+				t.Errorf("expected octet-stream, got %s", r.Header.Get("Content-Type"))
+			}
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		case callCount == 3 && strings.Contains(r.URL.Path, "/video_reels"):
+			// Step 3: finish
+			r.ParseForm()
+			if r.FormValue("upload_phase") != "finish" {
+				t.Errorf("expected upload_phase=finish, got %s", r.FormValue("upload_phase"))
+			}
+			if r.FormValue("video_id") != "vid_123" {
+				t.Errorf("expected video_id=vid_123, got %s", r.FormValue("video_id"))
+			}
+			if r.FormValue("description") != "Check this out!" {
+				t.Errorf("expected description=Check this out!, got %s", r.FormValue("description"))
+			}
+			if r.FormValue("published") != "true" {
+				t.Errorf("expected published=true, got %s", r.FormValue("published"))
+			}
+			json.NewEncoder(w).Encode(map[string]string{"id": "reel_001", "post_id": "111_reel_001"})
+		default:
+			t.Errorf("unexpected call %d to %s", callCount, r.URL.Path)
+		}
+	}))
+	defer srv3.Close()
+	srvURL = srv3.URL
+
+	client = graph.NewWithHTTPClient(srv3.URL, "test_token", srv3.Client())
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake reel video"), 0o644)
+
+	svc := posts.New(client)
+	result, err := svc.CreateReel(context.Background(), "111", posts.ReelOpts{
+		FilePath: tmpFile,
+		Message:  "Check this out!",
+	}, nil)
+	if err != nil {
+		t.Fatalf("CreateReel: %v", err)
+	}
+	if result.ID != "reel_001" {
+		t.Errorf("expected reel_001, got %s", result.ID)
+	}
+	if result.PostID != "111_reel_001" {
+		t.Errorf("expected 111_reel_001, got %s", result.PostID)
+	}
+	if callCount != 3 {
+		t.Errorf("expected 3 API calls, got %d", callCount)
+	}
+}
+
+func TestPostsCreateReelWithTitle(t *testing.T) {
+	var srvURL string
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		switch {
+		case callCount == 1:
+			json.NewEncoder(w).Encode(map[string]string{
+				"video_id":   "vid_456",
+				"upload_url": srvURL + "/upload/video",
+			})
+		case callCount == 2:
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		case callCount == 3:
+			r.ParseForm()
+			if r.FormValue("title") != "My Reel" {
+				t.Errorf("expected title=My Reel, got %s", r.FormValue("title"))
+			}
+			if r.FormValue("description") != "Description" {
+				t.Errorf("expected description=Description, got %s", r.FormValue("description"))
+			}
+			json.NewEncoder(w).Encode(map[string]string{"id": "reel_002"})
+		}
+	}))
+	defer srv.Close()
+	srvURL = srv.URL
+
+	client := graph.NewWithHTTPClient(srv.URL, "test_token", srv.Client())
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake reel"), 0o644)
+
+	svc := posts.New(client)
+	result, err := svc.CreateReel(context.Background(), "111", posts.ReelOpts{
+		FilePath: tmpFile,
+		Title:    "My Reel",
+		Message:  "Description",
+	}, nil)
+	if err != nil {
+		t.Fatalf("CreateReel with title: %v", err)
+	}
+	if result.ID != "reel_002" {
+		t.Errorf("expected reel_002, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateReelScheduled(t *testing.T) {
+	var srvURL string
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		switch {
+		case callCount == 1:
+			json.NewEncoder(w).Encode(map[string]string{
+				"video_id":   "vid_789",
+				"upload_url": srvURL + "/upload/video",
+			})
+		case callCount == 2:
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		case callCount == 3:
+			r.ParseForm()
+			if r.FormValue("published") != "false" {
+				t.Errorf("expected published=false, got %s", r.FormValue("published"))
+			}
+			if r.FormValue("scheduled_publish_time") == "" {
+				t.Error("expected scheduled_publish_time to be set")
+			}
+			// Should NOT have published=true
+			json.NewEncoder(w).Encode(map[string]string{"id": "reel_sched"})
+		}
+	}))
+	defer srv.Close()
+	srvURL = srv.URL
+
+	client := graph.NewWithHTTPClient(srv.URL, "test_token", srv.Client())
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake reel"), 0o644)
+
+	svc := posts.New(client)
+	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
+	result, err := svc.CreateReel(context.Background(), "111", posts.ReelOpts{
+		FilePath: tmpFile,
+		Message:  "Coming soon!",
+	}, opts)
+	if err != nil {
+		t.Fatalf("CreateReel scheduled: %v", err)
+	}
+	if result.ID != "reel_sched" {
+		t.Errorf("expected reel_sched, got %s", result.ID)
+	}
+}
+
+func TestPostsCreateReelInitError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "invalid page", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake reel"), 0o644)
+
+	svc := posts.New(client)
+	_, err := svc.CreateReel(context.Background(), "111", posts.ReelOpts{
+		FilePath: tmpFile,
+		Message:  "test",
+	}, nil)
+	if err == nil {
+		t.Error("expected error on init failure")
+	}
+	if !strings.Contains(err.Error(), "init reel upload") {
+		t.Errorf("expected init error context, got: %v", err)
+	}
+}
+
+func TestPostsCreateReelUploadError(t *testing.T) {
+	var srvURL string
+	callCount := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		callCount++
+		switch {
+		case callCount == 1:
+			json.NewEncoder(w).Encode(map[string]string{
+				"video_id":   "vid_err",
+				"upload_url": srvURL + "/upload/video",
+			})
+		case callCount == 2:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]any{
+				"error": map[string]any{"message": "upload failed", "code": 500},
+			})
+		}
+	}))
+	defer srv.Close()
+	srvURL = srv.URL
+
+	client := graph.NewWithHTTPClient(srv.URL, "test_token", srv.Client())
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake reel"), 0o644)
+
+	svc := posts.New(client)
+	_, err := svc.CreateReel(context.Background(), "111", posts.ReelOpts{
+		FilePath: tmpFile,
+		Message:  "test",
+	}, nil)
+	if err == nil {
+		t.Error("expected error on upload failure")
+	}
+	if !strings.Contains(err.Error(), "upload reel video") {
+		t.Errorf("expected upload error context, got: %v", err)
+	}
+}
+
 func TestPostsListScheduled(t *testing.T) {
 	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.URL.Path, "scheduled_posts") {

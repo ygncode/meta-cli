@@ -166,6 +166,53 @@ func (s *Service) CreatePhotos(ctx context.Context, pageID, message string, phot
 	return &result, nil
 }
 
+func (s *Service) CreateReel(ctx context.Context, pageID string, opts ReelOpts, schedOpts *ScheduleOpts) (*CreateResult, error) {
+	// Step 1: Init upload session
+	var initResult struct {
+		VideoID   string `json:"video_id"`
+		UploadURL string `json:"upload_url"`
+	}
+	if err := s.client.Post(ctx, pageID+"/video_reels", url.Values{"upload_phase": {"start"}}, &initResult); err != nil {
+		return nil, fmt.Errorf("init reel upload: %w", err)
+	}
+
+	// Step 2: Upload binary
+	var uploadResult struct {
+		Success bool `json:"success"`
+	}
+	if err := s.client.PostBinary(ctx, initResult.UploadURL, opts.FilePath, &uploadResult); err != nil {
+		return nil, fmt.Errorf("upload reel video: %w", err)
+	}
+	if !uploadResult.Success {
+		return nil, fmt.Errorf("upload reel video: upload returned success=false")
+	}
+
+	// Step 3: Finish/publish
+	finishBody := url.Values{
+		"upload_phase": {"finish"},
+		"video_id":     {initResult.VideoID},
+	}
+	if opts.Message != "" {
+		finishBody.Set("description", opts.Message)
+	}
+	if opts.Title != "" {
+		finishBody.Set("title", opts.Title)
+	}
+	if schedOpts != nil {
+		if err := applyScheduleOpts(finishBody, schedOpts); err != nil {
+			return nil, err
+		}
+	} else {
+		finishBody.Set("published", "true")
+	}
+
+	var result CreateResult
+	if err := s.client.Post(ctx, pageID+"/video_reels", finishBody, &result); err != nil {
+		return nil, fmt.Errorf("finish reel publish: %w", err)
+	}
+	return &result, nil
+}
+
 func (s *Service) CreateVideo(ctx context.Context, pageID string, vopts VideoOpts, schedOpts *ScheduleOpts) (*CreateResult, error) {
 	var result CreateResult
 	fields := map[string]string{}

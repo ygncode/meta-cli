@@ -18,6 +18,8 @@ meta-cli
 │   ├── edit           Edit a post's message
 │   ├── delete         Delete a post
 │   └── list-scheduled List scheduled (unpublished) posts
+├── reel (alias: reels)
+│   └── create         Publish a reel (short-form video)
 ├── comment (alias: comments)
 │   ├── list           List comments on a post
 │   ├── reply          Reply to a comment
@@ -286,6 +288,38 @@ meta-cli post list-scheduled --json
 | `--limit` | int | `10` | Number of scheduled posts to fetch |
 
 **Output:** Table with post ID, message, scheduled publish time, and creation time.
+
+**Requires:** Authentication + page
+
+---
+
+## Reel Commands
+
+### `reel create`
+
+Publish a reel (short-form video) on the page. Uses the 3-step Reels API: init upload session, upload binary, finish/publish.
+
+```bash
+# Basic reel
+meta-cli reel create --video /path/to/clip.mp4 --message "Check this out!"
+
+# Reel with title
+meta-cli reel create --video clip.mp4 --title "My Reel" --message "Description"
+
+# Scheduled reel
+meta-cli reel create --video clip.mp4 --message "Coming soon!" --schedule "2026-03-20 14:00"
+meta-cli reel create --video clip.mp4 --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--video` | string | Yes | Path to video file |
+| `--message` | string | No | Reel description |
+| `--title` | string | No | Reel title |
+| `--schedule` | string | No | Schedule for future publishing (format: `"YYYY-MM-DD HH:MM"`) |
+| `--tz` | string | No | Timezone for `--schedule` (e.g. `"Asia/Yangon"`), defaults to local |
+
+**Output:** Created reel details (ID, post ID).
 
 **Requires:** Authentication + page
 
@@ -833,6 +867,7 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `post edit` | Yes | Yes | Yes |
 | `post delete` | Yes | Yes | Yes |
 | `post list-scheduled` | Yes | Yes | Yes |
+| `reel create` | Yes | Yes | Yes |
 | `comment list` | Yes | Yes | Yes |
 | `comment reply` | Yes | Yes | Yes |
 | `comment update` | Yes | Yes | Yes |

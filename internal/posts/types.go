@@ -28,6 +28,12 @@ type VideoOpts struct {
 	Thumbnail string
 }
 
+type ReelOpts struct {
+	FilePath string
+	Title    string
+	Message  string
+}
+
 type ScheduledPost struct {
 	ID                   string `json:"id"`
 	Message              string `json:"message"`

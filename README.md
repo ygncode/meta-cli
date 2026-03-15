@@ -93,6 +93,12 @@ meta-cli post create --video clip.mp4 --message "Coming soon!" --schedule "2026-
 meta-cli post create --video clip.mp4 --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
 meta-cli post list-scheduled
 
+# --- Reels ---
+meta-cli reel create --video /path/to/clip.mp4 --message "Check this out!"
+meta-cli reel create --video clip.mp4 --title "My Reel" --message "Description"
+meta-cli reel create --video clip.mp4 --message "Coming soon!" --schedule "2026-03-20 14:00"
+meta-cli reel create --video clip.mp4 --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
+
 # --- Comments ---
 meta-cli comment list POST_ID
 meta-cli comment reply COMMENT_ID --message "Thanks!"
@@ -159,6 +165,7 @@ meta-cli rag search "how to reset password"
 | `post edit` | Edit a post's message |
 | `post delete` | Delete a post |
 | `post list-scheduled` | List scheduled (unpublished) posts |
+| `reel create` | Publish a reel (short-form video) |
 | `comment list` | List comments on a post |
 | `comment reply` | Reply to a comment |
 | `comment update` | Update a comment's message |

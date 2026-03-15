@@ -124,6 +124,30 @@ func (c *Client) PostMultipartFiles(ctx context.Context, path string, fields map
 	return c.do(req, out)
 }
 
+func (c *Client) PostBinary(ctx context.Context, uploadURL, filePath string, out any) error {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadURL, f)
+	if err != nil {
+		return err
+	}
+	req.ContentLength = fi.Size()
+	req.Header.Set("Authorization", "OAuth "+c.token)
+	req.Header.Set("Content-Type", "application/octet-stream")
+	req.Header.Set("offset", "0")
+	req.Header.Set("file_size", fmt.Sprintf("%d", fi.Size()))
+	return c.do(req, out)
+}
+
 func (c *Client) Delete(ctx context.Context, path string, out any) error {
 	u := c.baseURL + "/" + path + "?access_token=" + url.QueryEscape(c.token)
 

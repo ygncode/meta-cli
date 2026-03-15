@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -353,6 +354,59 @@ func TestClientPostMultipartFilesMissingFile(t *testing.T) {
 		nil,
 		map[string]string{"source": "/no/such/file.mp4"},
 		&out)
+	if err == nil {
+		t.Error("expected error for missing file")
+	}
+}
+
+func TestClientPostBinary(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("expected POST, got %s", r.Method)
+		}
+		auth := r.Header.Get("Authorization")
+		if auth != "OAuth test_token" {
+			t.Errorf("expected Authorization: OAuth test_token, got %s", auth)
+		}
+		ct := r.Header.Get("Content-Type")
+		if ct != "application/octet-stream" {
+			t.Errorf("expected application/octet-stream, got %s", ct)
+		}
+		offset := r.Header.Get("offset")
+		if offset != "0" {
+			t.Errorf("expected offset=0, got %s", offset)
+		}
+		fileSize := r.Header.Get("file_size")
+		if fileSize != "16" {
+			t.Errorf("expected file_size=16, got %s", fileSize)
+		}
+		body, _ := io.ReadAll(r.Body)
+		if string(body) != "fake video bytes" {
+			t.Errorf("expected body=fake video bytes, got %s", string(body))
+		}
+		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	}))
+	defer srv.Close()
+
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "clip.mp4")
+	os.WriteFile(tmpFile, []byte("fake video bytes"), 0o644)
+
+	c := newTestClient(t, srv)
+	var out map[string]bool
+	err := c.PostBinary(context.Background(), srv.URL+"/upload/video", tmpFile, &out)
+	if err != nil {
+		t.Fatalf("PostBinary: %v", err)
+	}
+	if !out["success"] {
+		t.Error("expected success=true")
+	}
+}
+
+func TestClientPostBinaryMissingFile(t *testing.T) {
+	c := graph.New("v21.0", "test_token")
+	var out map[string]bool
+	err := c.PostBinary(context.Background(), "https://example.com/upload", "/no/such/file.mp4", &out)
 	if err == nil {
 		t.Error("expected error for missing file")
 	}

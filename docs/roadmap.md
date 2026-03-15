@@ -10,10 +10,8 @@ Implemented as `insight page` and `insight post` commands with `--metric` and `-
 ### ~~Video Upload~~ ✅ Completed
 Implemented as `--video`, `--title`, and `--thumbnail` flags on `post create`. Supports scheduling with `--schedule` and `--tz`.
 
-### Reels Publishing
-Facebook's fastest-growing format. Limit: 30 per 24h.
-- `POST /{page-id}/video_reels` — 3-step process: init upload, upload video, finish/publish
-- Supports description, scheduled publishing
+### ~~Reels Publishing~~ ✅ Completed
+Implemented as `reel create` command with `--video`, `--message`, `--title`, `--schedule`, and `--tz` flags. Uses 3-step upload process (init, binary upload, finish/publish).
 
 ### Page Info Display
 Read and display page metadata from the terminal.
