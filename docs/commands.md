@@ -25,6 +25,9 @@ meta-cli
 │   ├── hide           Hide a comment
 │   ├── unhide         Unhide a comment
 │   └── delete         Delete a comment
+├── insight (alias: insights)
+│   ├── page           Show page-level insights
+│   └── post           Show post-level insights
 ├── label (alias: labels)
 │   ├── list           List all custom labels for the page
 │   ├── create         Create a new custom label
@@ -389,6 +392,54 @@ meta-cli comment delete COMMENT_ID
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `comment-id` | Yes | The comment ID to delete |
+
+**Requires:** Authentication + page
+
+---
+
+## Insight Commands
+
+### `insight page`
+
+Show page-level insights (reach, impressions, engagement).
+
+```bash
+meta-cli insight page
+meta-cli insight page --metric page_fans --period lifetime
+meta-cli insight page --metric page_impressions,page_engaged_users --period week
+meta-cli insight page --json
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--metric` | string | `page_impressions,page_impressions_unique,page_engaged_users,page_post_engagements,page_views_total` | Comma-separated metrics |
+| `--period` | string | `day` | Metric period (`day`, `week`, `days_28`, `month`, `lifetime`) |
+
+**Output:** Table with metric name, period, end time, and value.
+
+**Requires:** Authentication + page
+
+---
+
+### `insight post`
+
+Show post-level insights (impressions, reach, engagement, clicks).
+
+```bash
+meta-cli insight post POST_ID
+meta-cli insight post POST_ID --metric post_impressions,post_clicks
+meta-cli insight post POST_ID --json
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `post-id` | Yes | The post ID to get insights for |
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--metric` | string | `post_impressions,post_impressions_unique,post_engaged_users,post_clicks` | Comma-separated metrics |
+
+**Output:** Table with metric name, period, end time, and value.
 
 **Requires:** Authentication + page
 
@@ -777,6 +828,8 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `comment hide` | Yes | Yes | Yes |
 | `comment unhide` | Yes | Yes | Yes |
 | `comment delete` | Yes | Yes | Yes |
+| `insight page` | Yes | Yes | Yes |
+| `insight post` | Yes | Yes | Yes |
 | `label list` | Yes | Yes | Yes |
 | `label create` | Yes | Yes | Yes |
 | `label delete` | Yes | Yes | Yes |

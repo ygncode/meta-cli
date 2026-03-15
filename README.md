@@ -96,6 +96,13 @@ meta-cli comment hide COMMENT_ID
 meta-cli comment unhide COMMENT_ID
 meta-cli comment delete COMMENT_ID
 
+# --- Insights ---
+meta-cli insight page
+meta-cli insight page --metric page_fans --period lifetime
+meta-cli insight page --metric page_impressions,page_engaged_users --period week
+meta-cli insight post POST_ID
+meta-cli insight post POST_ID --metric post_impressions,post_clicks
+
 # --- Labels ---
 meta-cli label list
 meta-cli label create --name "VIP"
@@ -153,6 +160,8 @@ meta-cli rag search "how to reset password"
 | `comment hide` | Hide a comment |
 | `comment unhide` | Unhide a comment |
 | `comment delete` | Delete a comment |
+| `insight page` | Show page-level insights |
+| `insight post` | Show post-level insights |
 | `label list` | List all custom labels for the page |
 | `label create` | Create a new custom label |
 | `label delete` | Delete a custom label |
@@ -244,6 +253,7 @@ internal/
   pages/                   Page listing
   posts/                   Post CRUD operations
   comments/                Comment management
+  insights/                Page and post analytics
   labels/                  Custom label management (CRUD + user assignment)
   messenger/               Send messages + SQLite store + webhook handler
   rag/                     TF-IDF search over markdown documents
