@@ -5,54 +5,85 @@
 ```
 meta-cli
 ├── auth
-│   ├── login          Login with Facebook OAuth
-│   ├── status         Show current auth status
-│   └── refresh        Refresh page tokens
+│   ├── login              Login with Facebook OAuth
+│   ├── status             Show current auth status
+│   └── refresh            Refresh page tokens
 ├── pages
-│   ├── list           List pages you manage
-│   └── set-default    Set a default page for commands
+│   ├── list               List pages you manage
+│   ├── set-default        Set a default page for commands
+│   └── info               Display page information
 ├── post (alias: posts)
-│   ├── list           List recent posts
-│   ├── create         Create a text, photo, video, or link post
-│   ├── update         Update a post's message
-│   ├── edit           Edit a post's message
-│   ├── delete         Delete a post
-│   └── list-scheduled List scheduled (unpublished) posts
+│   ├── list               List recent posts
+│   ├── create             Create a text, photo, video, or link post
+│   ├── update             Update a post's message
+│   ├── edit               Edit a post's message
+│   ├── delete             Delete a post
+│   ├── list-scheduled     List scheduled (unpublished) posts
+│   ├── list-visitor       List visitor posts on the page
+│   └── list-tagged        List posts where the page is tagged
 ├── reel (alias: reels)
-│   └── create         Publish a reel (short-form video)
+│   └── create             Publish a reel (short-form video)
 ├── comment (alias: comments)
-│   ├── list           List comments on a post
-│   ├── reply          Reply to a comment
-│   ├── update         Update a comment's message
-│   ├── hide           Hide a comment
-│   ├── unhide         Unhide a comment
-│   └── delete         Delete a comment
+│   ├── list               List comments on a post
+│   ├── reply              Reply to a comment
+│   ├── update             Update a comment's message
+│   ├── hide               Hide a comment
+│   ├── unhide             Unhide a comment
+│   ├── delete             Delete a comment
+│   └── private-reply      Send a private Messenger reply
 ├── insight (alias: insights)
-│   ├── page           Show page-level insights
-│   └── post           Show post-level insights
+│   ├── page               Show page-level insights
+│   └── post               Show post-level insights
 ├── label (alias: labels)
-│   ├── list           List all custom labels for the page
-│   ├── create         Create a new custom label
-│   ├── delete         Delete a custom label
-│   ├── assign         Assign a label to a user
-│   ├── remove         Remove a label from a user
-│   └── list-by-user   List labels assigned to a user
+│   ├── list               List all custom labels for the page
+│   ├── create             Create a new custom label
+│   ├── delete             Delete a custom label
+│   ├── assign             Assign a label to a user
+│   ├── remove             Remove a label from a user
+│   └── list-by-user       List labels assigned to a user
 ├── messenger
-│   ├── send           Send a Messenger message
-│   ├── list           List stored messages
-│   └── history        List conversation history with a user
+│   ├── send               Send a message (text, attachment, tagged, quick replies)
+│   ├── send-template      Send a template message
+│   ├── list               List stored messages
+│   ├── history            List conversation history with a user
+│   ├── conversations      List Messenger conversations from API
+│   └── profile
+│       ├── get            Get Messenger profile settings
+│       ├── set-greeting   Set the greeting text
+│       ├── set-get-started Set the Get Started button
+│       ├── set-menu       Set the persistent menu
+│       ├── set-ice-breakers Set ice breaker starters
+│       └── delete         Delete a profile field
+├── event (alias: events)
+│   └── list               List page events
+├── rating (alias: ratings)
+│   ├── list               List page ratings and reviews
+│   └── summary            Show overall page rating
+├── reaction (alias: reactions)
+│   └── list               List reactions on a post or comment
+├── blocked
+│   ├── list               List blocked users
+│   ├── add                Block a user
+│   └── remove             Unblock a user
+├── role (alias: roles)
+│   ├── list               List users with page access
+│   ├── assign             Assign roles to a user
+│   └── remove             Remove a user's page access
+├── lead (alias: leads)
+│   ├── create-form        Create a lead generation form
+│   └── list               List leads from a form
 ├── config
-│   ├── set            Set a config value
-│   ├── get            Get a config value
-│   └── list           List all config values
+│   ├── set                Set a config value
+│   ├── get                Get a config value
+│   └── list               List all config values
 ├── webhook
-│   ├── serve          Start webhook HTTP server
-│   ├── subscribe      Subscribe page to webhook fields
-│   ├── status         Check if webhook server is running
-│   └── stop           Stop the webhook server
+│   ├── serve              Start webhook HTTP server
+│   ├── subscribe          Subscribe page to webhook fields
+│   ├── status             Check if webhook server is running
+│   └── stop               Stop the webhook server
 └── rag
-    ├── index          Show index stats for documents
-    └── search         Search documents by query
+    ├── index              Show index stats for documents
+    └── search             Search documents by query
 ```
 
 ## Global Flags
@@ -123,6 +154,21 @@ meta-cli auth refresh
 ---
 
 ## Pages Commands
+
+### `pages info`
+
+Display page information including metadata, contact info, and follower stats.
+
+```bash
+meta-cli pages info
+meta-cli pages info --json
+```
+
+**Output:** Page ID, name, about, description, category, phone, website, emails, fan count, followers count, and verification status.
+
+**Requires:** Authentication + page
+
+---
 
 ### `pages list`
 
@@ -218,6 +264,11 @@ meta-cli post create --video clip.mp4 --message "Hello!" --schedule "2026-03-20 
 | `--link` | string | No* | URL to share |
 | `--schedule` | string | No | Schedule for future publishing (format: `"YYYY-MM-DD HH:MM"`) |
 | `--tz` | string | No | Timezone for `--schedule` (e.g. `"Asia/Yangon"`), defaults to local |
+| `--backdate` | string | No | Backdate post (format: `"YYYY-MM-DD"`) |
+| `--backdate-granularity` | string | No | Backdate granularity (`year`, `month`, `day`, `hour`, `min`) |
+| `--targeting` | string | No | Audience targeting as JSON (e.g. `'{"geo_locations":{"countries":["US"]}}'`) |
+| `--place` | string | No | Place ID to tag the post with a location |
+| `--cta` | string | No | Call-to-action as JSON (e.g. `'{"type":"SHOP_NOW","value":{"link":"https://..."}}'`) |
 
 *At least one of `--message`, `--photo`, `--video`, or `--link` is required.
 
@@ -268,6 +319,44 @@ meta-cli post delete POST_ID
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `post-id` | Yes | The post ID to delete |
+
+**Requires:** Authentication + page
+
+---
+
+### `post list-visitor`
+
+List posts by visitors on the page.
+
+```bash
+meta-cli post list-visitor
+meta-cli post list-visitor --limit 50
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `25` | Number of visitor posts to fetch |
+
+**Output:** Table with post ID, message, author, and creation time.
+
+**Requires:** Authentication + page
+
+---
+
+### `post list-tagged`
+
+List posts where the page is tagged.
+
+```bash
+meta-cli post list-tagged
+meta-cli post list-tagged --limit 50
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `25` | Number of tagged posts to fetch |
+
+**Output:** Table with post ID, message, author, and creation time.
 
 **Requires:** Authentication + page
 
@@ -437,6 +526,27 @@ meta-cli comment delete COMMENT_ID
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `comment-id` | Yes | The comment ID to delete |
+
+**Requires:** Authentication + page
+
+---
+
+### `comment private-reply`
+
+Send a private Messenger reply to a comment.
+
+```bash
+meta-cli comment private-reply COMMENT_ID --message "Let's discuss this privately"
+meta-cli comment private-reply COMMENT_ID -m "I'll help you via DM"
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `comment-id` | Yes | The comment ID to reply to privately |
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `-m`, `--message` | string | Yes | Message text |
 
 **Requires:** Authentication + page
 
@@ -615,9 +725,17 @@ meta-cli messenger send --psid USER_PSID -m "Hello!"
 | Flag | Type | Required | Description |
 |------|------|----------|-------------|
 | `--psid` | string | Yes | Page-scoped user ID |
-| `-m`, `--message` | string | Yes | Message text |
+| `-m`, `--message` | string | No* | Message text |
+| `--image` | string | No* | Image URL or local file path |
+| `--video` | string | No* | Video URL or local file path |
+| `--audio` | string | No* | Audio URL or local file path |
+| `--file` | string | No* | File URL or local file path |
+| `--tag` | string | No | Message tag for outside 24-hour window (HUMAN_AGENT, ACCOUNT_UPDATE, POST_PURCHASE_UPDATE, CONFIRMED_EVENT_UPDATE) |
+| `--quick-reply` | string[] | No | Quick reply option (repeatable) |
 
-**Behavior:** Sends the message via the Graph API and stores it in the local SQLite database with direction "out".
+*At least one of `--message` or an attachment flag is required.
+
+**Behavior:** Sends the message via the Graph API and stores it in the local SQLite database with direction "out". If a URL or file attachment is provided, it is sent as a media attachment. Quick replies add interactive buttons below the message.
 
 **Requires:** Authentication + page
 
@@ -664,6 +782,361 @@ meta-cli messenger history --psid USER_PSID --json
 **Note:** This reads from the local database. It is designed to be called by the OpenClaw agent to get conversation context before replying.
 
 **Requires:** Page ID (no authentication needed - reads local DB only)
+
+---
+
+### `messenger send-template`
+
+Send a structured template message.
+
+```bash
+meta-cli messenger send-template --psid USER_PSID --json '{"template_type":"button","text":"Hello","buttons":[]}'
+meta-cli messenger send-template --psid USER_PSID --file template.json
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--psid` | string | Yes | Page-scoped user ID |
+| `--json` | string | No* | Template payload as JSON string |
+| `--file` | string | No* | Path to JSON file with template payload |
+
+*One of `--json` or `--file` is required.
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger conversations`
+
+List Messenger conversations from the API.
+
+```bash
+meta-cli messenger conversations
+meta-cli messenger conversations --limit 50
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `25` | Number of conversations to fetch |
+
+**Output:** Table with conversation ID, participants, updated time, and message count.
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger profile get`
+
+Get current Messenger profile settings.
+
+```bash
+meta-cli messenger profile get
+```
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger profile set-greeting`
+
+Set the Messenger greeting text.
+
+```bash
+meta-cli messenger profile set-greeting "Welcome to our page!"
+```
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger profile set-get-started`
+
+Set the Get Started button payload.
+
+```bash
+meta-cli messenger profile set-get-started GET_STARTED_PAYLOAD
+```
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger profile set-menu`
+
+Set the persistent menu.
+
+```bash
+meta-cli messenger profile set-menu --json '[{"locale":"default","call_to_actions":[...]}]'
+meta-cli messenger profile set-menu --file menu.json
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--json` | string | No* | Menu definition as JSON |
+| `--file` | string | No* | Path to JSON file |
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger profile set-ice-breakers`
+
+Set ice breaker conversation starters.
+
+```bash
+meta-cli messenger profile set-ice-breakers --json '[{"question":"Help?","payload":"HELP"}]'
+meta-cli messenger profile set-ice-breakers --file icebreakers.json
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--json` | string | No* | Ice breakers as JSON |
+| `--file` | string | No* | Path to JSON file |
+
+**Requires:** Authentication + page
+
+---
+
+### `messenger profile delete`
+
+Delete a Messenger profile field.
+
+```bash
+meta-cli messenger profile delete --field greeting
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--field` | string | Yes | Profile field to delete |
+
+**Requires:** Authentication + page
+
+---
+
+## Event Commands
+
+### `event list`
+
+List page events.
+
+```bash
+meta-cli event list
+meta-cli event list --limit 50
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `25` | Number of events to fetch |
+
+**Output:** Table with event ID, name, description, start time, end time, and place.
+
+**Requires:** Authentication + page
+
+---
+
+## Rating Commands
+
+### `rating list`
+
+List page ratings and reviews.
+
+```bash
+meta-cli rating list
+meta-cli rating list --limit 50
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `25` | Number of ratings to fetch |
+
+**Output:** Table with reviewer name, rating, review text, and creation time.
+
+**Requires:** Authentication + page
+
+---
+
+### `rating summary`
+
+Show overall page rating.
+
+```bash
+meta-cli rating summary
+meta-cli rating summary --json
+```
+
+**Output:** Star rating and total rating count.
+
+**Requires:** Authentication + page
+
+---
+
+## Reaction Commands
+
+### `reaction list`
+
+List reactions on a post or comment.
+
+```bash
+meta-cli reaction list POST_ID
+meta-cli reaction list COMMENT_ID --limit 100
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `object-id` | Yes | Post or comment ID |
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `50` | Number of reactions to fetch |
+
+**Output:** Table with user ID, name, and reaction type (LIKE, LOVE, WOW, HAHA, SAD, ANGRY, CARE).
+
+**Requires:** Authentication + page
+
+---
+
+## Blocked User Commands
+
+### `blocked list`
+
+List blocked users.
+
+```bash
+meta-cli blocked list
+meta-cli blocked list --limit 50
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `25` | Number of blocked users to fetch |
+
+**Requires:** Authentication + page
+
+---
+
+### `blocked add`
+
+Block a user.
+
+```bash
+meta-cli blocked add USER_ID
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `user-id` | Yes | User ID to block |
+
+**Requires:** Authentication + page
+
+---
+
+### `blocked remove`
+
+Unblock a user.
+
+```bash
+meta-cli blocked remove USER_ID
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `user-id` | Yes | User ID to unblock |
+
+**Requires:** Authentication + page
+
+---
+
+## Role Commands
+
+### `role list`
+
+List users with page access.
+
+```bash
+meta-cli role list
+meta-cli role list --json
+```
+
+**Output:** Table with user ID, name, and assigned tasks.
+
+**Requires:** Authentication + page
+
+---
+
+### `role assign`
+
+Assign roles to a user.
+
+```bash
+meta-cli role assign USER_ID --tasks MANAGE,CREATE_CONTENT
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `user-id` | Yes | User ID to assign roles to |
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--tasks` | string | Yes | Comma-separated tasks (MANAGE, CREATE_CONTENT, MODERATE, MESSAGING, ADVERTISE, ANALYZE) |
+
+**Requires:** Authentication + page
+
+---
+
+### `role remove`
+
+Remove a user's page access.
+
+```bash
+meta-cli role remove USER_ID
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `user-id` | Yes | User ID to remove |
+
+**Requires:** Authentication + page
+
+---
+
+## Lead Commands
+
+### `lead create-form`
+
+Create a lead generation form.
+
+```bash
+meta-cli lead create-form --json '{"name":"Contact Form","questions":[{"type":"FULL_NAME"}]}'
+meta-cli lead create-form --file form.json
+```
+
+| Flag | Type | Required | Description |
+|------|------|----------|-------------|
+| `--json` | string | No* | Form definition as JSON |
+| `--file` | string | No* | Path to JSON file |
+
+**Requires:** Authentication + page
+
+---
+
+### `lead list`
+
+List leads from a form.
+
+```bash
+meta-cli lead list FORM_ID
+meta-cli lead list FORM_ID --limit 100
+```
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `form-id` | Yes | Lead gen form ID |
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--limit` | int | `50` | Number of leads to fetch |
+
+**Requires:** Authentication + page
 
 ---
 
@@ -861,12 +1334,15 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `auth refresh` | Yes | - | - |
 | `pages list` | Yes | - | Yes (user token) |
 | `pages set-default` | - | - | - |
+| `pages info` | Yes | Yes | Yes |
 | `post list` | Yes | Yes | Yes |
 | `post create` | Yes | Yes | Yes |
 | `post update` | Yes | Yes | Yes |
 | `post edit` | Yes | Yes | Yes |
 | `post delete` | Yes | Yes | Yes |
 | `post list-scheduled` | Yes | Yes | Yes |
+| `post list-visitor` | Yes | Yes | Yes |
+| `post list-tagged` | Yes | Yes | Yes |
 | `reel create` | Yes | Yes | Yes |
 | `comment list` | Yes | Yes | Yes |
 | `comment reply` | Yes | Yes | Yes |
@@ -882,9 +1358,27 @@ meta-cli rag search "shipping" --dir ./knowledge-base
 | `label assign` | Yes | Yes | Yes |
 | `label remove` | Yes | Yes | Yes |
 | `label list-by-user` | Yes | Yes | Yes |
+| `comment private-reply` | Yes | Yes | Yes |
 | `messenger send` | Yes | Yes | Yes |
+| `messenger send-template` | Yes | Yes | Yes |
 | `messenger list` | - | Yes | - |
 | `messenger history` | - | Yes | - |
+| `messenger conversations` | Yes | Yes | Yes |
+| `messenger profile get` | Yes | Yes | Yes |
+| `messenger profile set-*` | Yes | Yes | Yes |
+| `messenger profile delete` | Yes | Yes | Yes |
+| `event list` | Yes | Yes | Yes |
+| `rating list` | Yes | Yes | Yes |
+| `rating summary` | Yes | Yes | Yes |
+| `reaction list` | Yes | Yes | Yes |
+| `blocked list` | Yes | Yes | Yes |
+| `blocked add` | Yes | Yes | Yes |
+| `blocked remove` | Yes | Yes | Yes |
+| `role list` | Yes | Yes | Yes |
+| `role assign` | Yes | Yes | Yes |
+| `role remove` | Yes | Yes | Yes |
+| `lead create-form` | Yes | Yes | Yes |
+| `lead list` | Yes | Yes | Yes |
 | `webhook serve` | Yes | Yes | Yes |
 | `webhook subscribe` | Yes | Yes | Yes |
 | `webhook status` | - | - | - |

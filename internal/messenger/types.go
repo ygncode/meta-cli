@@ -50,3 +50,10 @@ type Postback struct {
 type ReadReceipt struct {
 	Watermark int64 `json:"watermark"`
 }
+
+type Conversation struct {
+	ID           string `json:"id"`
+	Participants string `json:"participants"`
+	UpdatedTime  string `json:"updated_time"`
+	MessageCount int    `json:"message_count"`
+}

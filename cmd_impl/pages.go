@@ -17,6 +17,7 @@ func init() {
 
 	pagesCmd.AddCommand(pagesListCmd())
 	pagesCmd.AddCommand(pagesSetDefaultCmd())
+	pagesCmd.AddCommand(pagesInfoCmd())
 	rootCmd.AddCommand(pagesCmd)
 }
 
@@ -40,6 +41,27 @@ func pagesSetDefaultCmd() *cobra.Command {
 
 			fmt.Fprintf(cmd.OutOrStdout(), "Default page set to %s\n", pageID)
 			return nil
+		},
+	}
+}
+
+func pagesInfoCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "info",
+		Short: "Display page information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			svc := pages.New(rctx.Client)
+			info, err := svc.Info(cmd.Context(), rctx.PageID)
+			if err != nil {
+				return err
+			}
+
+			return rctx.Printer.PrintOne(info)
 		},
 	}
 }

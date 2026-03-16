@@ -106,19 +106,68 @@ func applyScheduleOptsToFields(fields map[string]string, opts *ScheduleOpts) err
 	return nil
 }
 
-func (s *Service) CreateText(ctx context.Context, pageID, message string, opts *ScheduleOpts) (*CreateResult, error) {
+func applyAdvancedOpts(body url.Values, opts *AdvancedOpts) {
+	if opts == nil {
+		return
+	}
+	if opts.BackdateTime != "" {
+		t, err := time.Parse("2006-01-02", opts.BackdateTime)
+		if err == nil {
+			body.Set("backdated_time", fmt.Sprintf("%d", t.Unix()))
+		}
+	}
+	if opts.BackdateGranularity != "" {
+		body.Set("backdated_time_granularity", opts.BackdateGranularity)
+	}
+	if opts.Targeting != "" {
+		body.Set("targeting", opts.Targeting)
+	}
+	if opts.Place != "" {
+		body.Set("place", opts.Place)
+	}
+	if opts.CallToAction != "" {
+		body.Set("call_to_action", opts.CallToAction)
+	}
+}
+
+func applyAdvancedOptsToFields(fields map[string]string, opts *AdvancedOpts) {
+	if opts == nil {
+		return
+	}
+	if opts.BackdateTime != "" {
+		t, err := time.Parse("2006-01-02", opts.BackdateTime)
+		if err == nil {
+			fields["backdated_time"] = fmt.Sprintf("%d", t.Unix())
+		}
+	}
+	if opts.BackdateGranularity != "" {
+		fields["backdated_time_granularity"] = opts.BackdateGranularity
+	}
+	if opts.Targeting != "" {
+		fields["targeting"] = opts.Targeting
+	}
+	if opts.Place != "" {
+		fields["place"] = opts.Place
+	}
+	if opts.CallToAction != "" {
+		fields["call_to_action"] = opts.CallToAction
+	}
+}
+
+func (s *Service) CreateText(ctx context.Context, pageID, message string, opts *ScheduleOpts, advOpts *AdvancedOpts) (*CreateResult, error) {
 	var result CreateResult
 	body := url.Values{"message": {message}}
 	if err := applyScheduleOpts(body, opts); err != nil {
 		return nil, err
 	}
+	applyAdvancedOpts(body, advOpts)
 	if err := s.client.Post(ctx, pageID+"/feed", body, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
-func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath string, opts *ScheduleOpts) (*CreateResult, error) {
+func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath string, opts *ScheduleOpts, advOpts *AdvancedOpts) (*CreateResult, error) {
 	var result CreateResult
 	fields := map[string]string{}
 	if message != "" {
@@ -127,6 +176,7 @@ func (s *Service) CreatePhoto(ctx context.Context, pageID, message, photoPath st
 	if err := applyScheduleOptsToFields(fields, opts); err != nil {
 		return nil, err
 	}
+	applyAdvancedOptsToFields(fields, advOpts)
 	if err := s.client.PostMultipart(ctx, pageID+"/photos", fields, photoPath, &result); err != nil {
 		return nil, err
 	}
@@ -235,7 +285,7 @@ func (s *Service) CreateVideo(ctx context.Context, pageID string, vopts VideoOpt
 	return &result, nil
 }
 
-func (s *Service) CreateLink(ctx context.Context, pageID, message, link string, opts *ScheduleOpts) (*CreateResult, error) {
+func (s *Service) CreateLink(ctx context.Context, pageID, message, link string, opts *ScheduleOpts, advOpts *AdvancedOpts) (*CreateResult, error) {
 	var result CreateResult
 	body := url.Values{"link": {link}}
 	if message != "" {
@@ -244,6 +294,7 @@ func (s *Service) CreateLink(ctx context.Context, pageID, message, link string, 
 	if err := applyScheduleOpts(body, opts); err != nil {
 		return nil, err
 	}
+	applyAdvancedOpts(body, advOpts)
 	if err := s.client.Post(ctx, pageID+"/feed", body, &result); err != nil {
 		return nil, err
 	}
@@ -275,6 +326,50 @@ func (s *Service) Delete(ctx context.Context, postID string) error {
 		return fmt.Errorf("failed to delete post %s", postID)
 	}
 	return nil
+}
+
+func (s *Service) ListVisitor(ctx context.Context, pageID string, limit int) ([]ExternalPost, error) {
+	return s.listExternalPosts(ctx, pageID+"/visitor_posts", limit)
+}
+
+func (s *Service) ListTagged(ctx context.Context, pageID string, limit int) ([]ExternalPost, error) {
+	return s.listExternalPosts(ctx, pageID+"/tagged", limit)
+}
+
+func (s *Service) listExternalPosts(ctx context.Context, path string, limit int) ([]ExternalPost, error) {
+	var result struct {
+		Data []struct {
+			ID          string `json:"id"`
+			Message     string `json:"message"`
+			From        *struct {
+				Name string `json:"name"`
+			} `json:"from"`
+			CreatedTime string `json:"created_time"`
+		} `json:"data"`
+	}
+
+	params := url.Values{
+		"fields": {"id,message,from,created_time"},
+		"limit":  {fmt.Sprintf("%d", limit)},
+	}
+
+	if err := s.client.Get(ctx, path, params, &result); err != nil {
+		return nil, err
+	}
+
+	posts := make([]ExternalPost, 0, len(result.Data))
+	for _, d := range result.Data {
+		p := ExternalPost{
+			ID:          d.ID,
+			Message:     d.Message,
+			CreatedTime: d.CreatedTime,
+		}
+		if d.From != nil {
+			p.From = d.From.Name
+		}
+		posts = append(posts, p)
+	}
+	return posts, nil
 }
 
 func (s *Service) ListScheduled(ctx context.Context, pageID string, limit int) ([]ScheduledPost, error) {

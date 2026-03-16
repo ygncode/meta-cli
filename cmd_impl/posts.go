@@ -21,6 +21,8 @@ func init() {
 	postsCmd.AddCommand(postEditCmd())
 	postsCmd.AddCommand(postDeleteCmd())
 	postsCmd.AddCommand(postListScheduledCmd())
+	postsCmd.AddCommand(postListVisitorCmd())
+	postsCmd.AddCommand(postListTaggedCmd())
 	rootCmd.AddCommand(postsCmd)
 }
 
@@ -54,6 +56,7 @@ func postCreateCmd() *cobra.Command {
 	var message, link, schedule, tz string
 	var video, title, thumbnail string
 	var photos []string
+	var backdate, backdateGranularity, targeting, place, cta string
 
 	cmd := &cobra.Command{
 		Use:   "create",
@@ -84,6 +87,17 @@ func postCreateCmd() *cobra.Command {
 				schedOpts = &posts.ScheduleOpts{PublishTime: t}
 			}
 
+			var advOpts *posts.AdvancedOpts
+			if backdate != "" || backdateGranularity != "" || targeting != "" || place != "" || cta != "" {
+				advOpts = &posts.AdvancedOpts{
+					BackdateTime:        backdate,
+					BackdateGranularity: backdateGranularity,
+					Targeting:           targeting,
+					Place:               place,
+					CallToAction:        cta,
+				}
+			}
+
 			svc := posts.New(rctx.Client)
 			ctx := cmd.Context()
 
@@ -99,11 +113,11 @@ func postCreateCmd() *cobra.Command {
 			case len(photos) > 1:
 				result, err = svc.CreatePhotos(ctx, rctx.PageID, message, photos, schedOpts)
 			case len(photos) == 1:
-				result, err = svc.CreatePhoto(ctx, rctx.PageID, message, photos[0], schedOpts)
+				result, err = svc.CreatePhoto(ctx, rctx.PageID, message, photos[0], schedOpts, advOpts)
 			case link != "":
-				result, err = svc.CreateLink(ctx, rctx.PageID, message, link, schedOpts)
+				result, err = svc.CreateLink(ctx, rctx.PageID, message, link, schedOpts, advOpts)
 			case message != "":
-				result, err = svc.CreateText(ctx, rctx.PageID, message, schedOpts)
+				result, err = svc.CreateText(ctx, rctx.PageID, message, schedOpts, advOpts)
 			default:
 				return fmt.Errorf("provide --message, --photo, --video, or --link")
 			}
@@ -124,6 +138,11 @@ func postCreateCmd() *cobra.Command {
 	cmd.Flags().StringVar(&thumbnail, "thumbnail", "", "Path to thumbnail image (requires --video)")
 	cmd.Flags().StringVar(&schedule, "schedule", "", "Schedule post for future publishing (e.g. \"2026-03-20 14:00\")")
 	cmd.Flags().StringVar(&tz, "tz", "", "Timezone for --schedule (e.g. \"Asia/Yangon\"), defaults to local")
+	cmd.Flags().StringVar(&backdate, "backdate", "", "Backdate post (format: \"YYYY-MM-DD\")")
+	cmd.Flags().StringVar(&backdateGranularity, "backdate-granularity", "", "Backdate granularity (year, month, day, hour, min)")
+	cmd.Flags().StringVar(&targeting, "targeting", "", "Audience targeting as JSON (e.g. '{\"geo_locations\":{\"countries\":[\"US\"]}}')")
+	cmd.Flags().StringVar(&place, "place", "", "Place ID to tag the post with a location")
+	cmd.Flags().StringVar(&cta, "cta", "", "Call-to-action as JSON (e.g. '{\"type\":\"SHOP_NOW\",\"value\":{\"link\":\"https://...\"}}')")
 	return cmd
 }
 
@@ -216,6 +235,66 @@ func postListScheduledCmd() *cobra.Command {
 	}
 
 	cmd.Flags().IntVar(&limit, "limit", 10, "Number of scheduled posts to fetch")
+	return cmd
+}
+
+func postListVisitorCmd() *cobra.Command {
+	var limit int
+
+	cmd := &cobra.Command{
+		Use:   "list-visitor",
+		Short: "List visitor posts on the page",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			svc := posts.New(rctx.Client)
+			list, err := svc.ListVisitor(cmd.Context(), rctx.PageID, limit)
+			if err != nil {
+				return err
+			}
+
+			if len(list) == 0 {
+				rctx.Printer.OK("No visitor posts")
+				return nil
+			}
+			return rctx.Printer.Print(list)
+		},
+	}
+
+	cmd.Flags().IntVar(&limit, "limit", 25, "Number of visitor posts to fetch")
+	return cmd
+}
+
+func postListTaggedCmd() *cobra.Command {
+	var limit int
+
+	cmd := &cobra.Command{
+		Use:   "list-tagged",
+		Short: "List posts where the page is tagged",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			svc := posts.New(rctx.Client)
+			list, err := svc.ListTagged(cmd.Context(), rctx.PageID, limit)
+			if err != nil {
+				return err
+			}
+
+			if len(list) == 0 {
+				rctx.Printer.OK("No tagged posts")
+				return nil
+			}
+			return rctx.Printer.Print(list)
+		},
+	}
+
+	cmd.Flags().IntVar(&limit, "limit", 25, "Number of tagged posts to fetch")
 	return cmd
 }
 

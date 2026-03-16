@@ -87,6 +87,7 @@ meta-cli post create --video clip.mp4 --title "My Video" --thumbnail thumb.jpg -
 meta-cli post list
 meta-cli post update POST_ID --message "Updated text"
 meta-cli post delete POST_ID
+meta-cli post create --message "Shop now!" --cta '{"type":"SHOP_NOW","value":{"link":"https://example.com/shop"}}'
 meta-cli post create --message "Coming soon!" --schedule "2026-03-20 14:00"
 meta-cli post create --message "Hello!" --schedule "2026-03-20 14:00" --tz "Asia/Yangon"
 meta-cli post create --video clip.mp4 --message "Coming soon!" --schedule "2026-03-20 14:00"
@@ -122,10 +123,54 @@ meta-cli label assign LABEL_ID --psid USER_PSID
 meta-cli label remove LABEL_ID --psid USER_PSID
 meta-cli label list-by-user USER_PSID
 
+# --- Posts (Visitor & Tagged) ---
+meta-cli post list-visitor
+meta-cli post list-tagged
+
+# --- Events ---
+meta-cli event list
+
+# --- Ratings ---
+meta-cli rating list
+meta-cli rating summary
+
+# --- Reactions ---
+meta-cli reaction list POST_ID
+meta-cli reaction list COMMENT_ID
+
+# --- Blocked Users ---
+meta-cli blocked list
+meta-cli blocked add USER_ID
+meta-cli blocked remove USER_ID
+
+# --- Roles ---
+meta-cli role list
+meta-cli role assign USER_ID --tasks MANAGE,CREATE_CONTENT
+meta-cli role remove USER_ID
+
 # --- Messenger ---
 meta-cli messenger send --psid USER_PSID --message "Hello!"
+meta-cli messenger send --psid USER_PSID --image /path/to/image.jpg
+meta-cli messenger send --psid USER_PSID --image https://example.com/image.jpg
+meta-cli messenger send --psid USER_PSID --video /path/to/clip.mp4
+meta-cli messenger send --psid USER_PSID --message "Hello!" --tag HUMAN_AGENT
+meta-cli messenger send --psid USER_PSID --message "Pick one" --quick-reply "Yes" --quick-reply "No"
+meta-cli messenger send-template --psid USER_PSID --json '{"template_type":"button","text":"Hello","buttons":[]}'
 meta-cli messenger list
 meta-cli messenger history --psid USER_PSID
+meta-cli messenger conversations
+
+# --- Messenger Profile ---
+meta-cli messenger profile get
+meta-cli messenger profile set-greeting "Welcome!"
+meta-cli messenger profile set-get-started GET_STARTED
+meta-cli messenger profile set-menu --file menu.json
+meta-cli messenger profile set-ice-breakers --file icebreakers.json
+meta-cli messenger profile delete --field greeting
+
+# --- Leads ---
+meta-cli lead create-form --json '{"name":"Contact Form"}'
+meta-cli lead list FORM_ID
 
 # --- Config ---
 meta-cli config set verify_token YOUR_TOKEN
@@ -180,9 +225,37 @@ meta-cli rag search "how to reset password"
 | `label assign` | Assign a label to a user |
 | `label remove` | Remove a label from a user |
 | `label list-by-user` | List labels assigned to a user |
-| `messenger send` | Send a Messenger message |
+| `pages info` | Display page information |
+| `post list-visitor` | List visitor posts on the page |
+| `post list-tagged` | List posts where the page is tagged |
+| `post create --backdate` | Create backdated posts |
+| `post create --targeting` | Create audience-targeted posts |
+| `post create --place` | Create location-tagged posts |
+| `post create --cta` | Add call-to-action button to posts |
+| `event list` | List page events |
+| `rating list` | List page ratings and reviews |
+| `rating summary` | Show overall page rating |
+| `reaction list` | List reactions on a post or comment |
+| `blocked list` | List blocked users |
+| `blocked add` | Block a user |
+| `blocked remove` | Unblock a user |
+| `role list` | List users with page access |
+| `role assign` | Assign roles to a user |
+| `role remove` | Remove a user's page access |
+| `comment private-reply` | Send a private Messenger reply to a comment |
+| `messenger send` | Send a Messenger message (text, attachment, tagged, quick replies) |
+| `messenger send-template` | Send a template message |
 | `messenger list` | List stored messages |
 | `messenger history` | List conversation history with a user |
+| `messenger conversations` | List Messenger conversations from API |
+| `messenger profile get` | Get Messenger profile settings |
+| `messenger profile set-greeting` | Set the Messenger greeting text |
+| `messenger profile set-get-started` | Set the Get Started button payload |
+| `messenger profile set-menu` | Set the persistent menu |
+| `messenger profile set-ice-breakers` | Set ice breaker conversation starters |
+| `messenger profile delete` | Delete a Messenger profile field |
+| `lead create-form` | Create a lead generation form |
+| `lead list` | List leads from a form |
 | `config set` | Set a config value |
 | `config get` | Get a config value |
 | `config list` | List all config values |
@@ -262,12 +335,18 @@ internal/
   config/                  JSON config management
   graph/                   Meta Graph API HTTP client
   output/                  Table/JSON/TSV output formatting
-  pages/                   Page listing
-  posts/                   Post CRUD operations
-  comments/                Comment management
+  pages/                   Page listing + info
+  posts/                   Post CRUD + visitor/tagged posts
+  comments/                Comment management + private reply
   insights/                Page and post analytics
   labels/                  Custom label management (CRUD + user assignment)
-  messenger/               Send messages + SQLite store + webhook handler
+  messenger/               Send messages + attachments + templates + profile + SQLite store + webhook
+  events/                  Page events listing
+  ratings/                 Page ratings and reviews
+  reactions/               Reaction listing on posts/comments
+  blocked/                 Blocked user management
+  roles/                   User/role management
+  leads/                   Lead generation forms and leads
   rag/                     TF-IDF search over markdown documents
   debounce/                Message debouncing (per-user timer)
   hooks/                   OpenClaw /hooks/agent caller

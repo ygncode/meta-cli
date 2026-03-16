@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/ygncode/meta-cli/internal/comments"
+	"github.com/ygncode/meta-cli/internal/messenger"
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 	commentsCmd.AddCommand(commentHideCmd())
 	commentsCmd.AddCommand(commentUnhideCmd())
 	commentsCmd.AddCommand(commentDeleteCmd())
+	commentsCmd.AddCommand(commentPrivateReplyCmd())
 	rootCmd.AddCommand(commentsCmd)
 }
 
@@ -177,4 +179,36 @@ func commentDeleteCmd() *cobra.Command {
 			return nil
 		},
 	}
+}
+
+func commentPrivateReplyCmd() *cobra.Command {
+	var message string
+
+	cmd := &cobra.Command{
+		Use:   "private-reply <comment-id>",
+		Short: "Send a private Messenger reply to a comment",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			rctx, err := requirePageClient(cmd)
+			if err != nil {
+				return err
+			}
+
+			if message == "" {
+				return fmt.Errorf("--message is required")
+			}
+
+			svc := messenger.NewService(rctx.Client)
+			mid, err := svc.SendPrivateReply(cmd.Context(), args[0], message)
+			if err != nil {
+				return err
+			}
+
+			rctx.Printer.OK(fmt.Sprintf("Private reply sent: %s", mid))
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&message, "message", "m", "", "Message text")
+	return cmd
 }

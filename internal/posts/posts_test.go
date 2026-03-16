@@ -80,7 +80,7 @@ func TestPostsCreateText(t *testing.T) {
 	defer srv.Close()
 
 	svc := posts.New(client)
-	result, err := svc.CreateText(context.Background(), "111", "My post", nil)
+	result, err := svc.CreateText(context.Background(), "111", "My post", nil, nil)
 	if err != nil {
 		t.Fatalf("CreateText: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestPostsCreateLink(t *testing.T) {
 	defer srv.Close()
 
 	svc := posts.New(client)
-	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com", nil)
+	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com", nil, nil)
 	if err != nil {
 		t.Fatalf("CreateLink: %v", err)
 	}
@@ -116,7 +116,7 @@ func TestPostsCreateLinkNoMessage(t *testing.T) {
 	defer srv.Close()
 
 	svc := posts.New(client)
-	result, err := svc.CreateLink(context.Background(), "111", "", "https://example.com", nil)
+	result, err := svc.CreateLink(context.Background(), "111", "", "https://example.com", nil, nil)
 	if err != nil {
 		t.Fatalf("CreateLink: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestPostsCreatePhoto(t *testing.T) {
 	os.WriteFile(tmpFile, []byte("fake jpg"), 0o644)
 
 	svc := posts.New(client)
-	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile, nil)
+	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile, nil, nil)
 	if err != nil {
 		t.Fatalf("CreatePhoto: %v", err)
 	}
@@ -321,7 +321,7 @@ func TestPostsCreateTextScheduled(t *testing.T) {
 
 	svc := posts.New(client)
 	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
-	result, err := svc.CreateText(context.Background(), "111", "Scheduled post", opts)
+	result, err := svc.CreateText(context.Background(), "111", "Scheduled post", opts, nil)
 	if err != nil {
 		t.Fatalf("CreateText scheduled: %v", err)
 	}
@@ -345,7 +345,7 @@ func TestPostsCreateLinkScheduled(t *testing.T) {
 
 	svc := posts.New(client)
 	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
-	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com", opts)
+	result, err := svc.CreateLink(context.Background(), "111", "check this", "https://example.com", opts, nil)
 	if err != nil {
 		t.Fatalf("CreateLink scheduled: %v", err)
 	}
@@ -373,7 +373,7 @@ func TestPostsCreatePhotoScheduled(t *testing.T) {
 
 	svc := posts.New(client)
 	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(1 * time.Hour)}
-	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile, opts)
+	result, err := svc.CreatePhoto(context.Background(), "111", "caption", tmpFile, opts, nil)
 	if err != nil {
 		t.Fatalf("CreatePhoto scheduled: %v", err)
 	}
@@ -429,7 +429,7 @@ func TestPostsCreateScheduledTooSoon(t *testing.T) {
 
 	svc := posts.New(client)
 	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(5 * time.Minute)}
-	_, err := svc.CreateText(context.Background(), "111", "too soon", opts)
+	_, err := svc.CreateText(context.Background(), "111", "too soon", opts, nil)
 	if err == nil {
 		t.Error("expected error for schedule time too soon")
 	}
@@ -445,7 +445,7 @@ func TestPostsCreateScheduledTooFar(t *testing.T) {
 
 	svc := posts.New(client)
 	opts := &posts.ScheduleOpts{PublishTime: time.Now().Add(76 * 24 * time.Hour)}
-	_, err := svc.CreateText(context.Background(), "111", "too far", opts)
+	_, err := svc.CreateText(context.Background(), "111", "too far", opts, nil)
 	if err == nil {
 		t.Error("expected error for schedule time too far")
 	}
@@ -933,6 +933,103 @@ func TestPostsListScheduled(t *testing.T) {
 	}
 	if list[0].Message != "Future post" {
 		t.Errorf("expected Future post, got %s", list[0].Message)
+	}
+}
+
+func TestPostsListVisitor(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if !strings.Contains(r.URL.Path, "visitor_posts") {
+			t.Errorf("expected path to contain visitor_posts, got %s", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{
+					"id":           "visitor_001",
+					"message":      "Great page!",
+					"from":         map[string]any{"name": "Alice"},
+					"created_time": "2026-01-01T00:00:00+0000",
+				},
+			},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	list, err := svc.ListVisitor(context.Background(), "111", 25)
+	if err != nil {
+		t.Fatalf("ListVisitor: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 visitor post, got %d", len(list))
+	}
+	if list[0].From != "Alice" {
+		t.Errorf("expected Alice, got %s", list[0].From)
+	}
+}
+
+func TestPostsListVisitorError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "bad", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	_, err := svc.ListVisitor(context.Background(), "111", 25)
+	if err == nil {
+		t.Error("expected error")
+	}
+}
+
+func TestPostsListTagged(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.URL.Path, "tagged") {
+			t.Errorf("expected path to contain tagged, got %s", r.URL.Path)
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{
+					"id":           "tagged_001",
+					"message":      "Check out @page",
+					"from":         map[string]any{"name": "Bob"},
+					"created_time": "2026-01-02T00:00:00+0000",
+				},
+			},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	list, err := svc.ListTagged(context.Background(), "111", 25)
+	if err != nil {
+		t.Fatalf("ListTagged: %v", err)
+	}
+	if len(list) != 1 {
+		t.Fatalf("expected 1 tagged post, got %d", len(list))
+	}
+	if list[0].From != "Bob" {
+		t.Errorf("expected Bob, got %s", list[0].From)
+	}
+}
+
+func TestPostsListTaggedError(t *testing.T) {
+	srv, client := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"error": map[string]any{"message": "bad", "code": 100},
+		})
+	})
+	defer srv.Close()
+
+	svc := posts.New(client)
+	_, err := svc.ListTagged(context.Background(), "111", 25)
+	if err == nil {
+		t.Error("expected error")
 	}
 }
 

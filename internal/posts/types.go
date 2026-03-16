@@ -40,3 +40,18 @@ type ScheduledPost struct {
 	ScheduledPublishTime string `json:"scheduled_publish_time"`
 	CreatedTime          string `json:"created_time"`
 }
+
+type ExternalPost struct {
+	ID          string `json:"id"`
+	Message     string `json:"message"`
+	From        string `json:"from"`
+	CreatedTime string `json:"created_time"`
+}
+
+type AdvancedOpts struct {
+	BackdateTime        string
+	BackdateGranularity string
+	Targeting           string
+	Place               string
+	CallToAction        string
+}
