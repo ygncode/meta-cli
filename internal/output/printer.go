@@ -86,6 +86,12 @@ func (p *Printer) printTable(v any) error {
 	}
 
 	headers, rows := extractRows(rv)
+	// Truncate long cell values for readable table output
+	for i, row := range rows {
+		for j, cell := range row {
+			rows[i][j] = truncateCell(cell, 60)
+		}
+	}
 	table := tablewriter.NewWriter(p.w)
 	table.SetHeader(headers)
 	table.SetBorder(false)
@@ -93,6 +99,16 @@ func (p *Printer) printTable(v any) error {
 	table.AppendBulk(rows)
 	table.Render()
 	return nil
+}
+
+func truncateCell(s string, maxLen int) string {
+	// Replace newlines with spaces for single-line table display
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.Join(strings.Fields(s), " ") // collapse multiple spaces
+	if len([]rune(s)) > maxLen {
+		return string([]rune(s)[:maxLen]) + "..."
+	}
+	return s
 }
 
 func (p *Printer) printTSV(v any) error {
